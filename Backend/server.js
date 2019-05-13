@@ -10,18 +10,90 @@ let upload = multer({
 });
 
 app.use("/images", express.static(__dirname + "/uploads/"));
-app.use(cors({ credentials: true, origin: "http://159.89.112.34:3000" }));
+app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use(cookieParser());
 
 let url =
-  "mongodb+srv://noam:alibay@practice-project-mqqcj.mongodb.net/test?retryWrites=true";
+  "mongodb+srv://Lucile:jetaimeal91@cluster1-lqgqn.mongodb.net/test?retryWrites=true";
 
-let dbs = undefined;
 let db = undefined;
+
 MongoClient.connect(url, { useNewUrlParser: true }, (err, allDbs) => {
   if (err) throw err;
-  dbs = allDbs;
-  db = dbs.db("alibay");
+  db = allDbs.db("No-Room");
+});
+
+let generateId = () => {
+  return "" + Math.floor(Math.random() * 1000000);
+};
+
+//Signup
+
+app.post("/signup", upload.none(), (req, res) => {
+  let username = req.body.username;
+  let password = req.body.password;
+  db.collection("users")
+    .findOne({ username: username })
+    .then(user => {
+      if (user !== null) {
+        res.send(JSON.stringify({ success: false }));
+        return;
+      }
+      db.collection("users").insertOne(
+        {
+          username: username,
+          password: password
+        },
+        (err, result) => {
+          if (err) throw err;
+          let sessionId = generateId();
+          res.cookie("sid", sessionId);
+          db.collection("sessions").insertOne(
+            { sessionId: sessionId, username: username },
+            (err, result) => {
+              if (err) throw err;
+            }
+          );
+          res.send(JSON.stringify({ success: true }));
+        }
+      );
+    });
+});
+
+//Login
+
+app.post("/login", upload.none(), (req, res) => {
+  let username = req.body.username;
+  console.log("username", username);
+  let enteredPassword = req.body.password;
+  console.log("password", enteredPassword);
+  db.collection("users")
+    .findOne({ username: username })
+    .then(user => {
+      console.log("user", user);
+      let expectedPassword = user.password;
+      if (enteredPassword !== expectedPassword) {
+        res.send(JSON.stringify({ success: false }));
+        return;
+      }
+      let sessionId = generateId();
+      res.cookie("sid", sessionId);
+      db.collection("sessions").insertOne(
+        { sessionId: sessionId, username: username },
+        (err, result) => {
+          if (err) throw err;
+          res.send(JSON.stringify({ success: true }));
+        }
+      );
+    });
+});
+
+app.get("/logout", (req, res) => {
+  let sessionId = req.cookies.sid;
+
+  db.collection("sessions").deleteOne({ sessionId: sessionId });
+
+  res.send(JSON.stringify({ success: true }));
 });
 
 let a = () => {
