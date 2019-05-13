@@ -144,11 +144,11 @@ app.post("/cafe-details", upload.none(), (req, res) => {
 
 //Add a cafe (first step)
 
-app.post("/add-cafe", upload.array("file", 3), (req, res) => {
+app.post("/add-cafe", upload.array("files", 3), (req, res) => {
   let sessionId = req.cookies.sid;
   let files = req.files;
-  console.log("body=>", req.body);
-  console.log(req.file);
+  // console.log("body=>", req.body);
+  console.log("files" + req.files);
 
   if (files !== undefined) {
     let arr = files.map(el => {
@@ -164,22 +164,25 @@ app.post("/add-cafe", upload.array("file", 3), (req, res) => {
         db.collection("users")
           .findOne({ username: username })
           .then(owner => {
-            let name = req.body.name;
-            let desc = req.body.desc;
-            let address = req.body.address;
-            let imgs = arr;
+            let { name, desc, address } = req.body;
+            let images = arr;
             let ownerId = owner._id;
-
             db.collection("cafes").insertOne(
               {
-                name: name,
-                desc: desc,
-                address: address,
-                ownerId: ownerId,
-                images: imgs
+                name,
+                desc,
+                address,
+                ownerId,
+                images
               },
               (err, result) => {
                 if (err) throw err;
+                console.log("ID OF THE CAFE=>", result.ops[0]._id);
+                let cafeId = result.ops[0]._id;
+                db.collection("users").updateOne(
+                  { username: username },
+                  { $addToSet: { cafes: cafeId } }
+                );
                 res.send(JSON.stringify({ success: true }));
               }
             );
@@ -219,6 +222,19 @@ app.post("/add-layout", upload.none(), (req, res) => {
     });
 });
 
+// See cafe detail (owner side)
+
+app.post("cafe-owner-details", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let ObjectID = mongo.ObjectID;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+    });
+});
+
 //delete a cafe:
 
 app.post("/remove-cafe", upload.none(), (req, res) => {
@@ -232,8 +248,6 @@ app.post("/remove-cafe", upload.none(), (req, res) => {
       res.send(JSON.stringify({ success: true }));
     });
 });
-
-app.post("/add-cafe");
 
 let a = () => {
   console.log("the server is launched on port: 4000!");
