@@ -142,7 +142,7 @@ app.post("/cafe-details", upload.none(), (req, res) => {
     });
 });
 
-//Add a cafe:
+//Add a cafe (first step)
 
 app.post("/add-cafe", upload.array("file", 3), (req, res) => {
   let sessionId = req.cookies.sid;
@@ -153,8 +153,8 @@ app.post("/add-cafe", upload.array("file", 3), (req, res) => {
   if (files !== undefined) {
     let arr = files.map(el => {
       let frontendPath = "http://localhost:4000/images/" + el.filename;
-      return frontendPath;
       console.log("path for image=>", frontendPath);
+      return frontendPath;
     });
 
     db.collection("sessions")
@@ -186,6 +186,37 @@ app.post("/add-cafe", upload.array("file", 3), (req, res) => {
           });
       });
   }
+});
+
+// Add a Layout (second step)
+
+app.post("/add-layout", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let chairs = req.body.chairs;
+  let tables = req.body.tables;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId })
+            .then(cafe => {
+              let cafeId = cafe._id;
+              db.collection("layouts").insertOne({
+                cafeId: cafeId,
+                tables: tables,
+                chairs: chairs
+              });
+            });
+
+          res.send(JSON.stringify({ success: true }));
+        });
+    });
 });
 
 //delete a cafe:
