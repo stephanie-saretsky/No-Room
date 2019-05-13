@@ -13,6 +13,8 @@ app.use("/images", express.static(__dirname + "/uploads/"));
 app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use(cookieParser());
 
+//Mongo:
+
 let url =
   "mongodb+srv://Lucile:jetaimeal91@cluster1-lqgqn.mongodb.net/test?retryWrites=true";
 
@@ -22,6 +24,8 @@ MongoClient.connect(url, { useNewUrlParser: true }, (err, allDbs) => {
   if (err) throw err;
   db = allDbs.db("No-Room");
 });
+
+// Generate ID
 
 let generateId = () => {
   return "" + Math.floor(Math.random() * 1000000);
@@ -94,6 +98,30 @@ app.get("/logout", (req, res) => {
   db.collection("sessions").deleteOne({ sessionId: sessionId });
 
   res.send(JSON.stringify({ success: true }));
+});
+
+// List of cafes :
+
+app.get("/cafes", (req, res) => {
+  db.collection("cafes")
+    .find({})
+    .toArray((err, result) => {
+      if (err) throw err;
+      res.send(JSON.stringify({ success: true, cafeList: result }));
+    });
+});
+
+//delete a cafe:
+
+app.post("/remove-cafe", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let cafeId = req.body.cafeId;
+  let ObjectID = mongo.ObjectID;
+  db.collection("cafes")
+    .deleteOne({ _id: new ObjectID(cafeId) })
+    .then(result => {
+      res.send(JSON.stringify({ success: true }));
+    });
 });
 
 let a = () => {
