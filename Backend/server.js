@@ -149,21 +149,27 @@ app.post("/add-cafe", upload.array("file", 3), (req, res) => {
   let file = req.file;
   console.log("body=>", req.body);
   console.log(req.file);
-  db.collection("sessions")
-    .findOne({ sessionId: sessionId })
-    .then(owner => {});
-});
 
-// let file = req.file;
-// if (file !== undefined) {
-//   let frontendPath = "http://159.89.112.34:4000/images/" + file.filename;
-//   console.log("path for image=>", frontendPath);
-//   let newMsg = {
-//     username: username,
-//     message: msg,
-//     img: frontendPath,
-//     time: time
-//   };
+  if (file !== undefined) {
+    let frontendPath = "http://localhost:4000/images/" + file.filename;
+    console.log("path for image=>", frontendPath);
+
+    db.collection("sessions")
+      .findOne({ sessionId: sessionId })
+      .then(owner => {
+        let username = owner.username;
+        let ownerId = owner._id;
+        db.collection("users")
+          .findOne({ username: username })
+          .then(owner => {
+            let name = req.body.name;
+            let desc = req.body.desc;
+            let address = req.body.address;
+            let seat = req.body.seat;
+          });
+      });
+  }
+});
 
 //   messages = messages.concat(newMsg);
 //   console.log("new message", newMsg);
