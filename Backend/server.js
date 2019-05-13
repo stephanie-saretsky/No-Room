@@ -111,18 +111,44 @@ app.get("/cafes", (req, res) => {
     });
 });
 
+//cafe details :
+
+app.post("/cafe-details", upload.none(), (req, res) => {
+  let cafeId = req.body.cafeId;
+  let ObjectID = mongo.ObjectID;
+  db.collection("cafes")
+    .findOne({ _id: new ObjectID(cafeId) })
+    .then(cafe => {
+      db.collection("reviews-cafe")
+        .find({ cafeId: cafeId })
+        .toArray((err, rewiews) => {
+          if (err) throw err;
+          res.send(
+            JSON.stringify({
+              success: true,
+              cafe: cafe,
+              reviews: rewiews
+            })
+          );
+        });
+    });
+});
+
 //delete a cafe:
 
 app.post("/remove-cafe", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
   let cafeId = req.body.cafeId;
   let ObjectID = mongo.ObjectID;
+  console.log(cafeId);
   db.collection("cafes")
     .deleteOne({ _id: new ObjectID(cafeId) })
     .then(result => {
       res.send(JSON.stringify({ success: true }));
     });
 });
+
+app.post("/add-cafe");
 
 let a = () => {
   console.log("the server is launched on port: 4000!");
