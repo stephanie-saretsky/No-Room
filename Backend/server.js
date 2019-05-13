@@ -146,36 +146,49 @@ app.post("/cafe-details", upload.none(), (req, res) => {
 
 app.post("/add-cafe", upload.array("file", 3), (req, res) => {
   let sessionId = req.cookies.sid;
-  let file = req.file;
+  let files = req.files;
   console.log("body=>", req.body);
   console.log(req.file);
 
-  if (file !== undefined) {
-    let frontendPath = "http://localhost:4000/images/" + file.filename;
-    console.log("path for image=>", frontendPath);
+  if (files !== undefined) {
+    let arr = files.map(el => {
+      let frontendPath = "http://localhost:4000/images/" + el.filename;
+      return frontendPath;
+      console.log("path for image=>", frontendPath);
+    });
 
     db.collection("sessions")
       .findOne({ sessionId: sessionId })
       .then(owner => {
         let username = owner.username;
-        let ownerId = owner._id;
         db.collection("users")
           .findOne({ username: username })
           .then(owner => {
             let name = req.body.name;
             let desc = req.body.desc;
             let address = req.body.address;
-            let seat = req.body.seat;
+            let seats = req.body.seats;
+            let imgs = arr;
+            let ownerId = owner._id;
+
+            db.collection("cafes").insertOne(
+              {
+                name: name,
+                desc: desc,
+                address: address,
+                seats: seats,
+                ownerId: ownerId,
+                images: imgs
+              },
+              (err, result) => {
+                if (err) throw err;
+                res.send(JSON.stringify({ success: true }));
+              }
+            );
           });
       });
   }
 });
-
-//   messages = messages.concat(newMsg);
-//   console.log("new message", newMsg);
-//   res.send(JSON.stringify({ success: true }));
-//   return;
-// }
 
 //delete a cafe:
 
