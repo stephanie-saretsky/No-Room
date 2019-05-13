@@ -167,7 +167,6 @@ app.post("/add-cafe", upload.array("file", 3), (req, res) => {
             let name = req.body.name;
             let desc = req.body.desc;
             let address = req.body.address;
-            let seats = req.body.seats;
             let imgs = arr;
             let ownerId = owner._id;
 
@@ -176,7 +175,6 @@ app.post("/add-cafe", upload.array("file", 3), (req, res) => {
                 name: name,
                 desc: desc,
                 address: address,
-                seats: seats,
                 ownerId: ownerId,
                 images: imgs
               },
