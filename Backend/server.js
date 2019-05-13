@@ -50,14 +50,6 @@ app.post("/signup", upload.none(), (req, res) => {
         },
         (err, result) => {
           if (err) throw err;
-          let sessionId = generateId();
-          res.cookie("sid", sessionId);
-          db.collection("sessions").insertOne(
-            { sessionId: sessionId, username: username },
-            (err, result) => {
-              if (err) throw err;
-            }
-          );
           res.send(JSON.stringify({ success: true }));
         }
       );
@@ -80,15 +72,31 @@ app.post("/login", upload.none(), (req, res) => {
         res.send(JSON.stringify({ success: false }));
         return;
       }
-      let sessionId = generateId();
-      res.cookie("sid", sessionId);
-      db.collection("sessions").insertOne(
-        { sessionId: sessionId, username: username },
-        (err, result) => {
-          if (err) throw err;
-          res.send(JSON.stringify({ success: true }));
-        }
-      );
+      // code pour if statement
+      db.collection("sessions")
+        .findOne({ username: username })
+        .then(usersession => {
+          console.log("USER=>", usersession);
+          if (usersession !== null) {
+            let NewSessionId = generateId();
+            db.collection("sessions").updateOne(
+              { username: username },
+              { $set: { sessionId: NewSessionId } }
+            );
+            res.cookie("sid", NewSessionId);
+            res.send(JSON.stringify({ success: true }));
+            return;
+          }
+          let sessionId = generateId();
+          res.cookie("sid", sessionId);
+          db.collection("sessions").insertOne(
+            { sessionId: sessionId, username: username },
+            (err, result) => {
+              if (err) throw err;
+              res.send(JSON.stringify({ success: true }));
+            }
+          );
+        });
     });
 });
 
@@ -119,20 +127,49 @@ app.post("/cafe-details", upload.none(), (req, res) => {
   db.collection("cafes")
     .findOne({ _id: new ObjectID(cafeId) })
     .then(cafe => {
-      db.collection("reviews-cafe")
+      db.collection("cafe-reviews")
         .find({ cafeId: cafeId })
-        .toArray((err, rewiews) => {
+        .toArray((err, reviews) => {
           if (err) throw err;
           res.send(
             JSON.stringify({
               success: true,
               cafe: cafe,
-              reviews: rewiews
+              reviews: reviews
             })
           );
         });
     });
 });
+
+//Add a cafe:
+
+app.post("/add-cafe", upload.array("file", 3), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let file = req.file;
+  console.log("body=>", req.body);
+  console.log(req.file);
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(owner => {});
+});
+
+// let file = req.file;
+// if (file !== undefined) {
+//   let frontendPath = "http://159.89.112.34:4000/images/" + file.filename;
+//   console.log("path for image=>", frontendPath);
+//   let newMsg = {
+//     username: username,
+//     message: msg,
+//     img: frontendPath,
+//     time: time
+//   };
+
+//   messages = messages.concat(newMsg);
+//   console.log("new message", newMsg);
+//   res.send(JSON.stringify({ success: true }));
+//   return;
+// }
 
 //delete a cafe:
 
