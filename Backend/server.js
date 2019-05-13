@@ -66,6 +66,10 @@ app.post("/login", upload.none(), (req, res) => {
   db.collection("users")
     .findOne({ username: username })
     .then(user => {
+      if (user === null) {
+        res.send(JSON.stringify({ success: false }));
+        return;
+      }
       console.log("user", user);
       let expectedPassword = user.password;
       if (enteredPassword !== expectedPassword) {
