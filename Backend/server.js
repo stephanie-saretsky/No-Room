@@ -273,7 +273,7 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
         .then(owner => {
           let ownerId = owner._id;
           db.collection("cafes")
-            .find({ ownerId: ownerId })
+            .find({ ownerId: ownerId.toString() })
             .toArray((err, resultCafes) => {
               if (err) throw err;
               console.log("CAFEs=>", resultCafes);
