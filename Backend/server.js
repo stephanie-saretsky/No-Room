@@ -369,7 +369,7 @@ app.post("/response-review", upload.none(), (req, res) => {
 app.get("/search-cafe", (req, res) => {
   let search = req.query.search;
   let regexSearch = new RegExp(search, "i");
-  db.collection("coffee-items")
+  db.collection("cafes")
     .find({
       $or: [
         { description: { $regex: regexSearch } },
