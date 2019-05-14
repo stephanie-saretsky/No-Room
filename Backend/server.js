@@ -182,8 +182,6 @@ app.post("/cafe-details", upload.none(), (req, res) => {
 app.post("/add-cafe", upload.array("files", 3), (req, res) => {
   let sessionId = req.cookies.sid;
   let files = req.files;
-  // console.log("body=>", req.body);
-  console.log("files" + req.files);
 
   if (files !== undefined) {
     let arr = files.map(el => {
@@ -213,7 +211,7 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
               (err, result) => {
                 if (err) throw err;
                 console.log("ID OF THE CAFE=>", result.ops[0]._id);
-                let cafeId = result.ops[0]._id;
+                let cafeId = result.ops[0]._id.toString();
                 db.collection("users").updateOne(
                   { username: username },
                   { $addToSet: { cafes: cafeId } }
