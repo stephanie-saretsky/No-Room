@@ -376,6 +376,7 @@ app.post("/response-review", upload.none(), (req, res) => {
 
 app.get("/search-cafe", (req, res) => {
   let search = req.query.search;
+  console.log(search);
   let regexSearch = new RegExp(search, "i");
   db.collection("cafes")
     .find({
