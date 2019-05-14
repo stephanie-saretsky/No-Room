@@ -121,8 +121,9 @@ app.get("/login-check", (req, res) => {
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
     .then(user => {
+      let username = user.username;
       if (user !== null) {
-        res.send(JSON.stringify({ success: true }));
+        res.send(JSON.stringify({ success: true, username: username }));
         return;
       }
       res.send(JSON.stringify({ success: false }));
@@ -293,6 +294,47 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
               if (err) throw err;
               console.log("CAFEs=>", resultCafes);
               res.send(JSON.stringify(resultCafes));
+            });
+        });
+    });
+});
+
+//change seat
+
+app.post("/change-seat", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  console.log("sessionId", sessionId);
+  let chairId = req.body.chairId;
+  let ObjectID = mongo.ObjectID;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          console.log("ownerId", ownerId);
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId.toString() })
+            .then(cafe => {
+              let chairs = cafe.chairs;
+              chairs = chairs.map(chair => {
+                if (chair.id !== chairId) return chair;
+                if (chair.id === chairId) {
+                  return { ...chair, taken: !chair.taken };
+                }
+              });
+              db.collection("cafes").updateOne(
+                { ownerId: ownerId.toString() },
+                {
+                  $set: {
+                    chairs: chairs
+                  }
+                }
+              );
+              res.send(JSON.stringify({ success: true }));
             });
         });
     });
