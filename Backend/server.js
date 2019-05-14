@@ -66,6 +66,10 @@ app.post("/login", upload.none(), (req, res) => {
   db.collection("users")
     .findOne({ username: username })
     .then(user => {
+      if (user === null) {
+        res.send(JSON.stringify({ success: false }));
+        return;
+      }
       console.log("user", user);
       let expectedPassword = user.password;
       if (enteredPassword !== expectedPassword) {
@@ -142,19 +146,19 @@ app.post("/cafe-details", upload.none(), (req, res) => {
     });
 });
 
-//Add a cafe:
+//Add a cafe (first step)
 
-app.post("/add-cafe", upload.array("file", 3), (req, res) => {
+app.post("/add-cafe", upload.array("files", 3), (req, res) => {
   let sessionId = req.cookies.sid;
   let files = req.files;
-  console.log("body=>", req.body);
-  console.log(req.file);
+  // console.log("body=>", req.body);
+  console.log("files" + req.files);
 
   if (files !== undefined) {
     let arr = files.map(el => {
       let frontendPath = "http://localhost:4000/images/" + el.filename;
-      return frontendPath;
       console.log("path for image=>", frontendPath);
+      return frontendPath;
     });
 
     db.collection("sessions")
@@ -164,23 +168,26 @@ app.post("/add-cafe", upload.array("file", 3), (req, res) => {
         db.collection("users")
           .findOne({ username: username })
           .then(owner => {
-            let name = req.body.name;
-            let desc = req.body.desc;
-            let address = req.body.address;
-            let imgs = arr;
-            let ownerId = owner._id;
-
+            let { name, desc, address } = req.body;
+            let images = arr;
+            let ownerId = owner._id.toString();
             db.collection("cafes").insertOne(
               {
-                name: name,
-                desc: desc,
-                address: address,
-                ownerId: ownerId,
-                images: imgs
+                name,
+                desc,
+                address,
+                ownerId,
+                images
               },
               (err, result) => {
                 if (err) throw err;
-                res.send(JSON.stringify({ success: true }));
+                console.log("ID OF THE CAFE=>", result.ops[0]._id);
+                let cafeId = result.ops[0]._id;
+                db.collection("users").updateOne(
+                  { username: username },
+                  { $addToSet: { cafes: cafeId } }
+                );
+                res.send(JSON.stringify({ success: true, cafeId: cafeId }));
               }
             );
           });
@@ -188,13 +195,61 @@ app.post("/add-cafe", upload.array("file", 3), (req, res) => {
   }
 });
 
-//delete a cafe:
+// Add a Layout (second step)
+
+app.post("/add-layout", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let cafeId = req.body.cafeId;
+  let chairs = req.body.chairs;
+  let tables = req.body.tables;
+  let ObjectID = mongo.ObjectID;
+
+  db.collection("cafes").updatedOne(
+    { _id: new ObjectID(cafeId) },
+    {
+      $set: {
+        tables: tables,
+        chairs: chairs
+      }
+    }
+  );
+});
+
+// See cafe detail (owner side)
+
+app.post("/cafe-owner-details", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let ObjectID = mongo.ObjectID;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .find({ ownerId: ownerId })
+            .toArray((err, resultCafes) => {
+              if (err) throw err;
+              console.log("CAFEs=>", resultCafes);
+              res.send(JSON.stringify(resultCafes));
+            });
+        });
+    });
+});
+
+//delete a cafe
 
 app.post("/remove-cafe", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
   let cafeId = req.body.cafeId;
   let ObjectID = mongo.ObjectID;
   console.log(cafeId);
+  if (cafeId === undefined) {
+    res.send(JSON.stringify({ success: false }));
+  }
   db.collection("cafes")
     .deleteOne({ _id: new ObjectID(cafeId) })
     .then(result => {
@@ -202,7 +257,85 @@ app.post("/remove-cafe", upload.none(), (req, res) => {
     });
 });
 
-app.post("/add-cafe");
+//add a review to a cafe
+
+app.post("/add-review", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let cafeId = req.body.cafeId;
+  let review = req.body.review;
+  let rating = req.body.rating;
+  let reviewerName = req.body.name;
+
+  db.collection("cafe-reviews").insertOne(
+    {
+      cafeId: cafeId,
+      review: review,
+      rating: rating,
+      reviewerName: reviewerName
+    },
+    (err, result) => {
+      if (err) throw err;
+      res.send(JSON.stringify({ success: true }));
+    }
+  );
+});
+
+//edit a cafe (owner side)
+
+// app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
+//   let sessionId = req.cookies.sid;
+//   let files = req.files;
+//   console.log("files" + req.files);
+
+//   if (files !== undefined) {
+//     let arr = files.map(el => {
+//       let frontendPath = "http://localhost:4000/images/" + el.filename;
+//       console.log("path for image=>", frontendPath);
+//       return frontendPath;
+//     });
+
+//     db.collection("sessions")
+//       .findOne({ sessionId: sessionId })
+//       .then(owner => {
+//         let username = owner.username;
+//         db.collection("users")
+//           .findOne({ username: username })
+//           .then(owner => {
+//             let { name, desc, address } = req.body;
+//             let images = arr;
+//             let ownerId = owner._id;
+//             db.collection("cafes").insertOne(
+//               {
+//                 name,
+//                 desc,
+//                 address,
+//                 ownerId,
+//                 images
+//               },
+//               (err, result) => {
+//                 if (err) throw err;
+//                 console.log("ID OF THE CAFE=>", result.ops[0]._id);
+//                 let cafeId = result.ops[0]._id;
+//                 db.collection("users").updateOne(
+//                   { username: username },
+//                   { $addToSet: { cafes: cafeId } }
+//                 );
+//                 res.send(JSON.stringify({ success: true, cafeId: cafeId }));
+//               }
+//             );
+//           });
+//       });
+//   }
+// });
+
+// response to a review
+
+app.post("/response-review", upload.none(), (req, res) => {
+  let response = req.body.response;
+  let reviewId = req.body.reviewId;
+});
+
+// new endpoint => fonction
 
 let a = () => {
   console.log("the server is launched on port: 4000!");
