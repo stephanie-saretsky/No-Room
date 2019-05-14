@@ -135,6 +135,16 @@ app.post("/cafe-details", upload.none(), (req, res) => {
         .find({ cafeId: cafeId })
         .toArray((err, reviews) => {
           if (err) throw err;
+          // db.collection("responses-review")
+          //   .find({ reviewId: reviewId })
+          //   .toArray((err, responses) => {
+          //     if (err) throw err;
+          // let res = responses
+          // reviews = reviews.map( review=>{
+          //   return {...review, res.filter(response=>{
+          //     response.reviewId === review._id
+          //   })
+          // }
           res.send(
             JSON.stringify({
               success: true,
@@ -257,29 +267,6 @@ app.post("/remove-cafe", upload.none(), (req, res) => {
     });
 });
 
-//add a review to a cafe
-
-app.post("/add-review", upload.none(), (req, res) => {
-  let sessionId = req.cookies.sid;
-  let cafeId = req.body.cafeId;
-  let review = req.body.review;
-  let rating = req.body.rating;
-  let reviewerName = req.body.name;
-
-  db.collection("cafe-reviews").insertOne(
-    {
-      cafeId: cafeId,
-      review: review,
-      rating: rating,
-      reviewerName: reviewerName
-    },
-    (err, result) => {
-      if (err) throw err;
-      res.send(JSON.stringify({ success: true }));
-    }
-  );
-});
-
 //edit a cafe (owner side)
 
 // app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
@@ -328,11 +315,71 @@ app.post("/add-review", upload.none(), (req, res) => {
 //   }
 // });
 
+//add a review to a cafe
+
+app.post("/add-review", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let cafeId = req.body.cafeId;
+  let review = req.body.review;
+  let rating = req.body.rating;
+  let reviewerName = req.body.name;
+
+  db.collection("cafes")
+    .findOne({ cafeId: cafeId })
+    .then(cafe => {
+      name = cafe.name;
+      db.collection("cafe-reviews").insertOne(
+        {
+          name,
+          cafeId,
+          review,
+          rating,
+          reviewerName
+        },
+        (err, result) => {
+          if (err) throw err;
+          res.send(JSON.stringify({ success: true }));
+        }
+      );
+    });
+});
+
 // response to a review
 
 app.post("/response-review", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
   let response = req.body.response;
   let reviewId = req.body.reviewId;
+
+  db.collection("session")
+    .findOne({ sessionId: sessionId })
+    .then(owner => {
+      let username = owner.username;
+      db.collection("responses-review").insertOne({
+        reviewId: reviewId,
+        response: response,
+        ownerName: username
+      });
+      res.send(JSON.stringify({ success: true }));
+    });
+});
+
+//search cafe
+
+app.get("/search-cafe", (req, res) => {
+  let search = req.query.search;
+  let regexSearch = new RegExp(search, "i");
+  db.collection("coffee-items")
+    .find({
+      $or: [
+        { description: { $regex: regexSearch } },
+        { name: { $regex: regexSearch } }
+      ]
+    })
+    .toArray((err, result) => {
+      if (err) throw err;
+      res.send(JSON.stringify({ success: true, cafes: result }));
+    });
 });
 
 // new endpoint => fonction
