@@ -187,7 +187,7 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
                   { username: username },
                   { $addToSet: { cafes: cafeId } }
                 );
-                res.send(JSON.stringify({ success: true }));
+                res.send(JSON.stringify({ success: true, cafeId: cafeId }));
               }
             );
           });
@@ -199,8 +199,27 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
 
 app.post("/add-layout", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
+  let cafeId = req.body.cafeId;
   let chairs = req.body.chairs;
   let tables = req.body.tables;
+  let ObjectID = mongo.ObjectID;
+
+  db.collection("cafes").updatedOne(
+    { _id: new ObjectID(cafeId) },
+    {
+      $set: {
+        tables: tables,
+        chairs: chairs
+      }
+    }
+  );
+});
+
+// See cafe detail (owner side)
+
+app.post("/cafe-owner-details", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let ObjectID = mongo.ObjectID;
 
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
@@ -211,31 +230,13 @@ app.post("/add-layout", upload.none(), (req, res) => {
         .then(owner => {
           let ownerId = owner._id;
           db.collection("cafes")
-            .findOne({ ownerId: ownerId })
-            .then(cafe => {
-              let cafeId = cafe._id;
-              db.collection("layouts").insertOne({
-                cafeId: cafeId,
-                tables: tables,
-                chairs: chairs
-              });
+            .find({ ownerId: ownerId })
+            .toArray((err, resultCafes) => {
+              if (err) throw err;
+              console.log("CAFEs=>", resultCafes);
+              res.send(JSON.stringify(resultCafes));
             });
-
-          res.send(JSON.stringify({ success: true }));
         });
-    });
-});
-
-// See cafe detail (owner side)
-
-app.post("cafe-owner-details", upload.none(), (req, res) => {
-  let sessionId = req.cookies.sid;
-  let ObjectID = mongo.ObjectID;
-
-  db.collection("sessions")
-    .findOne({ sessionId: sessionId })
-    .then(user => {
-      let username = user.username;
     });
 });
 
@@ -246,6 +247,9 @@ app.post("/remove-cafe", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
   let ObjectID = mongo.ObjectID;
   console.log(cafeId);
+  if (cafeId === undefined) {
+    res.send(JSON.stringify({ success: false }));
+  }
   db.collection("cafes")
     .deleteOne({ _id: new ObjectID(cafeId) })
     .then(result => {
