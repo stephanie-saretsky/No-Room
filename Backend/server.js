@@ -231,8 +231,9 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
 app.post("/add-layout", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
   // let cafeId = req.body.cafeId;
-  let chairs = req.body.chairs;
-  let tables = req.body.tables;
+  console.log(req.body.chairs);
+  let chairs = JSON.parse(req.body.chairs);
+  let tables = JSON.parse(req.body.tables);
   let ObjectID = mongo.ObjectID;
 
   db.collection("sessions")
