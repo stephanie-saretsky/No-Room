@@ -135,23 +135,26 @@ app.post("/cafe-details", upload.none(), (req, res) => {
         .find({ cafeId: cafeId })
         .toArray((err, reviews) => {
           if (err) throw err;
-          // db.collection("responses-review")
-          //   .find({ reviewId: reviewId })
-          //   .toArray((err, responses) => {
-          //     if (err) throw err;
-          // let res = responses
-          // reviews = reviews.map( review=>{
-          //   return {...review, res.filter(response=>{
-          //     response.reviewId === review._id
-          //   })
-          // }
-          res.send(
-            JSON.stringify({
-              success: true,
-              cafe: cafe,
-              reviews: reviews
-            })
-          );
+          db.collection("responses-review")
+            .find({})
+            .toArray((err, responses) => {
+              if (err) throw err;
+              reviews = reviews.map(review => {
+                return {
+                  ...review,
+                  response: responses.filter(response => {
+                    return response.reviewId === review._id;
+                  })
+                };
+              });
+              res.send(
+                JSON.stringify({
+                  success: true,
+                  cafe: cafe,
+                  reviews: reviews
+                })
+              );
+            });
         });
     });
 });
@@ -209,7 +212,7 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
 
 app.post("/add-layout", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
-  let cafeId = req.body.cafeId;
+  // let cafeId = req.body.cafeId;
   let chairs = req.body.chairs;
   let tables = req.body.tables;
   let ObjectID = mongo.ObjectID;
@@ -220,16 +223,18 @@ app.post("/add-layout", upload.none(), (req, res) => {
       let username = owner.username;
       db.collection("users")
         .findOne({ username: username })
-        .db.collection("cafes")
-        .updatedOne(
-          { _id: new ObjectID(cafeId) },
-          {
-            $set: {
-              tables: tables,
-              chairs: chairs
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes").updatedOne(
+            { ownerId: ownerId },
+            {
+              $set: {
+                tables: tables,
+                chairs: chairs
+              }
             }
-          }
-        );
+          );
+        });
     });
 });
 
