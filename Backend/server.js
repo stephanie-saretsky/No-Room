@@ -214,15 +214,23 @@ app.post("/add-layout", upload.none(), (req, res) => {
   let tables = req.body.tables;
   let ObjectID = mongo.ObjectID;
 
-  db.collection("cafes").updatedOne(
-    { _id: new ObjectID(cafeId) },
-    {
-      $set: {
-        tables: tables,
-        chairs: chairs
-      }
-    }
-  );
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(owner => {
+      let username = owner.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .db.collection("cafes")
+        .updatedOne(
+          { _id: new ObjectID(cafeId) },
+          {
+            $set: {
+              tables: tables,
+              chairs: chairs
+            }
+          }
+        );
+    });
 });
 
 // See cafe detail (owner side)
@@ -372,7 +380,7 @@ app.get("/search-cafe", (req, res) => {
   db.collection("cafes")
     .find({
       $or: [
-        { description: { $regex: regexSearch } },
+        { desc: { $regex: regexSearch } },
         { name: { $regex: regexSearch } }
       ]
     })
