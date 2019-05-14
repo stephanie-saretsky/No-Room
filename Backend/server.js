@@ -243,8 +243,9 @@ app.post("/add-layout", upload.none(), (req, res) => {
         .findOne({ username: username })
         .then(owner => {
           let ownerId = owner._id;
+          console.log(ownerId);
           db.collection("cafes").updateOne(
-            { ownerId: ownerId },
+            { ownerId: ownerId.toString() },
             {
               $set: {
                 tables: tables,
