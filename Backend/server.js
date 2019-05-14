@@ -104,12 +104,30 @@ app.post("/login", upload.none(), (req, res) => {
     });
 });
 
+//Logout
+
 app.get("/logout", (req, res) => {
   let sessionId = req.cookies.sid;
 
   db.collection("sessions").deleteOne({ sessionId: sessionId });
 
   res.send(JSON.stringify({ success: true }));
+});
+
+// Check if user is already login
+
+app.get("/login-check", (req, res) => {
+  let sessionId = req.cookies.sid;
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      if (user !== null) {
+        res.send(JSON.stringify({ success: true }));
+        return;
+      }
+      res.send(JSON.stringify({ success: false }));
+      return;
+    });
 });
 
 // List of cafes :
