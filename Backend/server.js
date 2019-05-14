@@ -252,6 +252,7 @@ app.post("/add-layout", upload.none(), (req, res) => {
               }
             }
           );
+          res.send(JSON.stringify({ success: true }));
         });
     });
 });
