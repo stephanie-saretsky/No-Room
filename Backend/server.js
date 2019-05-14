@@ -197,14 +197,17 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
         db.collection("users")
           .findOne({ username: username })
           .then(owner => {
-            let { name, desc, address } = req.body;
+            let name = req.body.name;
+            let desc = req.body.desc;
+            let address = req.body.address;
+            let urlAddress = address.split(" ").join("+");
             let images = arr;
             let ownerId = owner._id.toString();
             db.collection("cafes").insertOne(
               {
                 name,
                 desc,
-                address,
+                address: urlAddress,
                 ownerId,
                 images
               },
@@ -216,7 +219,13 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
                   { username: username },
                   { $addToSet: { cafes: cafeId } }
                 );
-                res.send(JSON.stringify({ success: true, cafeId: cafeId }));
+                res.send(
+                  JSON.stringify({
+                    success: true,
+                    cafeId: cafeId,
+                    address: urlAddress
+                  })
+                );
               }
             );
           });
@@ -224,37 +233,44 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
   }
 });
 
+//Add a location:
+
+app.post("/add-location", upload.none(), (req, res) => {
+  let cafeId = req.body.cafeId;
+  let location = JSON.parse(req.body.location);
+  let ObjectID = mongo.ObjectID;
+  console.log("BODY=>", req.body);
+
+  db.collection("cafes").updateOne(
+    { _id: new ObjectID(cafeId) },
+    {
+      $set: {
+        location: location
+      }
+    }
+  );
+  res.send(JSON.stringify({ success: true }));
+});
+
 // Add a Layout (second step)
 
 app.post("/add-layout", upload.none(), (req, res) => {
-  let sessionId = req.cookies.sid;
-  // let cafeId = req.body.cafeId;
-  console.log(req.body.chairs);
+  let cafeId = req.body.cafeId;
+  console.log("cafeId=>", cafeId);
   let chairs = JSON.parse(req.body.chairs);
   let tables = JSON.parse(req.body.tables);
   let ObjectID = mongo.ObjectID;
 
-  db.collection("sessions")
-    .findOne({ sessionId: sessionId })
-    .then(owner => {
-      let username = owner.username;
-      db.collection("users")
-        .findOne({ username: username })
-        .then(owner => {
-          let ownerId = owner._id;
-          console.log(ownerId);
-          db.collection("cafes").updateOne(
-            { ownerId: ownerId.toString() },
-            {
-              $set: {
-                tables: tables,
-                chairs: chairs
-              }
-            }
-          );
-          res.send(JSON.stringify({ success: true }));
-        });
-    });
+  db.collection("cafes").updateOne(
+    { _id: new ObjectID(cafeId) },
+    {
+      $set: {
+        tables: tables,
+        chairs: chairs
+      }
+    }
+  );
+  res.send(JSON.stringify({ success: true }));
 });
 
 // See cafe detail (owner side)
