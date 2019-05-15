@@ -230,9 +230,7 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
                     success: true,
                     cafeId: cafeId,
                     address: address,
-                    city: city,
-                    code: code,
-                    country: country
+                    city: city
                   })
                 );
               }
