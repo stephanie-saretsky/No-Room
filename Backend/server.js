@@ -1,9 +1,9 @@
-let express = require("./node_modules/express");
-let multer = require("./node_modules/multer");
-let cors = require("./node_modules/cors");
-let cookieParser = require("./node_modules/cookie-parser");
-let MongoClient = require("./node_modules/mongodb").MongoClient;
-let mongo = require("./node_modules/mongodb");
+let express = require("express");
+let multer = require("multer");
+let cors = require("cors");
+let cookieParser = require("cookie-parser");
+let MongoClient = require("mongodb").MongoClient;
+let mongo = require("mongodb");
 let app = express();
 let upload = multer({
   dest: __dirname + "/uploads/"
@@ -183,63 +183,66 @@ app.post("/cafe-details", upload.none(), (req, res) => {
 app.post("/add-cafe", upload.array("files", 3), (req, res) => {
   let sessionId = req.cookies.sid;
   let files = req.files;
+  let images = [];
 
-  if (files !== undefined) {
-    let arr = files.map(el => {
+  console.log("files", files);
+  if (files.length !== 0) {
+    images = files.map(el => {
       let frontendPath = "http://localhost:4000/images/" + el.filename;
       console.log("path for image=>", frontendPath);
       return frontendPath;
     });
-
-    db.collection("sessions")
-      .findOne({ sessionId: sessionId })
-      .then(owner => {
-        let username = owner.username;
-        db.collection("users")
-          .findOne({ username: username })
-          .then(owner => {
-            let name = req.body.name;
-            let desc = req.body.desc;
-            let address = req.body.address;
-            let country = req.body.country;
-            let city = req.body.city;
-            let code = req.body.code;
-            let images = arr;
-            let tags = JSON.parse(req.body.tags);
-            let ownerId = owner._id.toString();
-            db.collection("cafes").insertOne(
-              {
-                name,
-                desc,
-                address,
-                code,
-                city,
-                country,
-                ownerId,
-                images,
-                tags
-              },
-              (err, result) => {
-                if (err) throw err;
-                console.log("ID OF THE CAFE=>", result.ops[0]._id);
-                let cafeId = result.ops[0]._id.toString();
-                db.collection("users").updateOne(
-                  { username: username },
-                  { $addToSet: { cafes: cafeId } }
-                );
-                res.send(
-                  JSON.stringify({
-                    success: true,
-                    cafeId: cafeId,
-                    address: address,
-                    city: city
-                  })
-                );
-              }
-            );
-          });
-      });
+  } else {
+    images = images.concat("http://localhost:4000/images/logo.png");
   }
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(owner => {
+      let username = owner.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let name = req.body.name;
+          let desc = req.body.desc;
+          let address = req.body.address;
+          let country = req.body.country;
+          let city = req.body.city;
+          let code = req.body.code;
+          let tags = JSON.parse(req.body.tags);
+          let ownerId = owner._id.toString();
+          db.collection("cafes").insertOne(
+            {
+              name,
+              desc,
+              address,
+              code,
+              city,
+              country,
+              ownerId,
+              images,
+              tags
+            },
+            (err, result) => {
+              if (err) throw err;
+              console.log("ID OF THE CAFE=>", result.ops[0]._id);
+              let cafeId = result.ops[0]._id.toString();
+              db.collection("users").updateOne(
+                { username: username },
+                { $addToSet: { cafes: cafeId } }
+              );
+              res.send(
+                JSON.stringify({
+                  success: true,
+                  cafeId: cafeId,
+                  address: address,
+                  city: city
+                })
+              );
+            }
+          );
+        });
+    });
 });
 
 //Add a location:
@@ -480,7 +483,6 @@ app.post("/response-review", upload.none(), (req, res) => {
 
 app.get("/search-cafe", (req, res) => {
   let search = req.query.search;
-  console.log(search);
   let regexSearch = new RegExp(search, "i");
   db.collection("cafes")
     .find({
