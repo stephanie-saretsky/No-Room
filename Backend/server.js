@@ -495,6 +495,33 @@ app.get("/search-cafe", (req, res) => {
     });
 });
 
+app.get("/autocomplete", upload.none(), (req, res) => {
+  let ObjectID = mongo.ObjectID;
+  let id = "5cdc72f51c9d44000083a958";
+  db.collection("autocomplete").findOne(
+    { _id: new ObjectID(id) },
+    (err, results) => {
+      if (err) throw err;
+      res.send(JSON.stringify(results));
+    }
+  );
+});
+
+app.post("checkAuto", upload.none(), (req, res) => {
+  let elements = JSON.parse(req.body.elements);
+  let id = "5cdc72f51c9d44000083a958";
+  let ObjectID = mongo.ObjectID;
+
+  db.collection("autocomplete").updateOne(
+    { _id: new ObjectID(id) },
+    {
+      $set: {
+        elements: elements
+      }
+    }
+  );
+});
+
 // new endpoint => fonction
 
 let a = () => {
