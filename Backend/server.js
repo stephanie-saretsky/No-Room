@@ -121,8 +121,8 @@ app.get("/login-check", (req, res) => {
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
     .then(user => {
-      let username = user.username;
       if (user !== null) {
+        let username = user.username;
         res.send(JSON.stringify({ success: true, username: username }));
         return;
       }
