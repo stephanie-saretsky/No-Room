@@ -265,20 +265,31 @@ app.post("/add-location", upload.none(), (req, res) => {
 
 app.post("/add-layout", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
-
+  let session = req.body.sid;
   let chairs = JSON.parse(req.body.chairs);
   let tables = JSON.parse(req.body.tables);
   let ObjectID = mongo.ObjectID;
 
-  db.collection("cafes").updateOne(
-    { _id: new ObjectID(cafeId) },
-    {
-      $set: {
-        tables: tables,
-        chairs: chairs
-      }
-    }
-  );
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes").updateOne(
+            { ownerId: ownerId.toString() },
+            {
+              $set: {
+                tables: tables,
+                chairs: chairs
+              }
+            }
+          );
+        });
+    });
+
   res.send(JSON.stringify({ success: true }));
 });
 
@@ -324,7 +335,7 @@ app.post("/change-seat", upload.none(), (req, res) => {
         .then(owner => {
           let ownerId = owner._id;
           db.collection("cafes")
-            .findOne({ cafeId: new ObjectID(cafeId) })
+            .findOne({ ownerId: ownerId.toString() })
             .then(cafe => {
               let chairs = cafe.chairs;
               chairs = chairs.map(chair => {
@@ -339,7 +350,7 @@ app.post("/change-seat", upload.none(), (req, res) => {
                 }
               });
               db.collection("cafes").updateOne(
-                { cafeId: new ObjectID(cafeId) },
+                { ownerId: ownerId.toString() },
                 {
                   $set: {
                     chairs: chairs
@@ -492,3 +503,12 @@ let a = () => {
 };
 
 app.listen(4000, a(), "0.0.0.0");
+
+//Pythagorean theoreme:
+// let xd = this.enemies[i].x - this.player.x;
+// let yd = this.enemies[i].y - this.player.y;
+
+// let pyth = Math.sqrt(Math.pow(xd, 2) + Math.pow(yd, 2));
+
+// if (pyth < ||) {
+// 	return true;
