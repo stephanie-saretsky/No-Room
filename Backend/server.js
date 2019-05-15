@@ -201,6 +201,9 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
             let name = req.body.name;
             let desc = req.body.desc;
             let address = req.body.address;
+            let country = req.body.country;
+            let city = req.body.city;
+            let code = req.body.code;
             let images = arr;
             let ownerId = owner._id.toString();
             db.collection("cafes").insertOne(
@@ -208,6 +211,9 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
                 name,
                 desc,
                 address,
+                code,
+                city,
+                country,
                 ownerId,
                 images
               },
@@ -223,7 +229,10 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
                   JSON.stringify({
                     success: true,
                     cafeId: cafeId,
-                    address: address
+                    address: address,
+                    city: city,
+                    code: code,
+                    country: country
                   })
                 );
               }
