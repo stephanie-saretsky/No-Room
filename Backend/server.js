@@ -306,42 +306,42 @@ app.post("/change-seat", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
   let ObjectID = mongo.ObjectID;
 
-  // db.collection("sessions")
-  //   .findOne({ sessionId: sessionId })
-  //   .then(user => {
-  //     let username = user.username;
-  //     db.collection("users")
-  //       .findOne({ username: username })
-  //       .then(owner => {
-  //         let ownerId = owner._id;
-  db.collection("cafes")
-    .findOne({ cafeId: new ObjectID(cafeId) })
-    .then(cafe => {
-      let chairs = cafe.chairs;
-      chairs = chairs.map(chair => {
-        if (chair.id !== chairId) return chair;
-        if (chair.id === chairId) {
-          if (chair.taken === true) {
-            return { ...chair, taken: false };
-          }
-          if (chair.taken === false) {
-            return { ...chair, taken: true };
-          }
-        }
-      });
-      db.collection("cafes").updateOne(
-        { cafeId: new ObjectID(cafeId) },
-        {
-          $set: {
-            chairs: chairs
-          }
-        }
-      );
-      res.send(JSON.stringify({ success: true }));
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .findOne({ cafeId: new ObjectID(cafeId) })
+            .then(cafe => {
+              let chairs = cafe.chairs;
+              chairs = chairs.map(chair => {
+                if (chair.id !== chairId) return chair;
+                if (chair.id === chairId) {
+                  if (chair.taken === true) {
+                    return { ...chair, taken: false };
+                  }
+                  if (chair.taken === false) {
+                    return { ...chair, taken: true };
+                  }
+                }
+              });
+              db.collection("cafes").updateOne(
+                { cafeId: new ObjectID(cafeId) },
+                {
+                  $set: {
+                    chairs: chairs
+                  }
+                }
+              );
+              res.send(JSON.stringify({ success: true }));
+            });
+        });
     });
 });
-//     });
-// });
 
 //delete a cafe
 
