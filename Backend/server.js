@@ -475,7 +475,8 @@ app.get("/search-cafe", (req, res) => {
     .find({
       $or: [
         { desc: { $regex: regexSearch } },
-        { name: { $regex: regexSearch } }
+        { name: { $regex: regexSearch } },
+        { tags: { $regex: regexSearch } }
       ]
     })
     .toArray((err, result) => {
