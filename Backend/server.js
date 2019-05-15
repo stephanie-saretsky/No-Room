@@ -264,8 +264,7 @@ app.post("/add-location", upload.none(), (req, res) => {
 // Add a Layout (second step)
 
 app.post("/add-layout", upload.none(), (req, res) => {
-  let cafeId = req.body.cafeId;
-  let session = req.body.sid;
+  let sessionId = req.cookies.sid;
   let chairs = JSON.parse(req.body.chairs);
   let tables = JSON.parse(req.body.tables);
   let ObjectID = mongo.ObjectID;
