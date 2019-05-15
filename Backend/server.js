@@ -201,14 +201,13 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
             let name = req.body.name;
             let desc = req.body.desc;
             let address = req.body.address;
-            let urlAddress = address.split(" ").join("+");
             let images = arr;
             let ownerId = owner._id.toString();
             db.collection("cafes").insertOne(
               {
                 name,
                 desc,
-                address: urlAddress,
+                address,
                 ownerId,
                 images
               },
@@ -224,7 +223,7 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
                   JSON.stringify({
                     success: true,
                     cafeId: cafeId,
-                    address: urlAddress
+                    address: address
                   })
                 );
               }
@@ -304,44 +303,45 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
 app.post("/change-seat", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
   let chairId = req.body.chairId;
+  let cafeId = req.body.cafeId;
   let ObjectID = mongo.ObjectID;
 
-  db.collection("sessions")
-    .findOne({ sessionId: sessionId })
-    .then(user => {
-      let username = user.username;
-      db.collection("users")
-        .findOne({ username: username })
-        .then(owner => {
-          let ownerId = owner._id;
-          db.collection("cafes")
-            .findOne({ ownerId: ownerId.toString() })
-            .then(cafe => {
-              let chairs = cafe.chairs;
-              chairs = chairs.map(chair => {
-                if (chair.id !== chairId) return chair;
-                if (chair.id === chairId) {
-                  if (chair.taken === true) {
-                    return { ...chair, taken: false };
-                  }
-                  if (chair.taken === false) {
-                    return { ...chair, taken: true };
-                  }
-                }
-              });
-              db.collection("cafes").updateOne(
-                { ownerId: ownerId.toString() },
-                {
-                  $set: {
-                    chairs: chairs
-                  }
-                }
-              );
-              res.send(JSON.stringify({ success: true }));
-            });
-        });
+  // db.collection("sessions")
+  //   .findOne({ sessionId: sessionId })
+  //   .then(user => {
+  //     let username = user.username;
+  //     db.collection("users")
+  //       .findOne({ username: username })
+  //       .then(owner => {
+  //         let ownerId = owner._id;
+  db.collection("cafes")
+    .findOne({ cafeId: new ObjectID(cafeId) })
+    .then(cafe => {
+      let chairs = cafe.chairs;
+      chairs = chairs.map(chair => {
+        if (chair.id !== chairId) return chair;
+        if (chair.id === chairId) {
+          if (chair.taken === true) {
+            return { ...chair, taken: false };
+          }
+          if (chair.taken === false) {
+            return { ...chair, taken: true };
+          }
+        }
+      });
+      db.collection("cafes").updateOne(
+        { cafeId: new ObjectID(cafeId) },
+        {
+          $set: {
+            chairs: chairs
+          }
+        }
+      );
+      res.send(JSON.stringify({ success: true }));
     });
 });
+//     });
+// });
 
 //delete a cafe
 
