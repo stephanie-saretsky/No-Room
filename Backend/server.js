@@ -507,7 +507,7 @@ app.get("/autocomplete", upload.none(), (req, res) => {
   );
 });
 
-app.post("checkAuto", upload.none(), (req, res) => {
+app.post("/checkAuto", upload.none(), (req, res) => {
   let elements = JSON.parse(req.body.elements);
   let id = "5cdc72f51c9d44000083a958";
   let ObjectID = mongo.ObjectID;
