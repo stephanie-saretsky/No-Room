@@ -303,7 +303,6 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
 
 app.post("/change-seat", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
-  console.log("sessionId", sessionId);
   let chairId = req.body.chairId;
   let ObjectID = mongo.ObjectID;
 
@@ -315,7 +314,6 @@ app.post("/change-seat", upload.none(), (req, res) => {
         .findOne({ username: username })
         .then(owner => {
           let ownerId = owner._id;
-          console.log("ownerId", ownerId);
           db.collection("cafes")
             .findOne({ ownerId: ownerId.toString() })
             .then(cafe => {
@@ -323,7 +321,12 @@ app.post("/change-seat", upload.none(), (req, res) => {
               chairs = chairs.map(chair => {
                 if (chair.id !== chairId) return chair;
                 if (chair.id === chairId) {
-                  return { ...chair, taken: !chair.taken };
+                  if (chair.taken === true) {
+                    return { ...chair, taken: false };
+                  }
+                  if (chair.taken === false) {
+                    return { ...chair, taken: true };
+                  }
                 }
               });
               db.collection("cafes").updateOne(
