@@ -205,6 +205,7 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
             let city = req.body.city;
             let code = req.body.code;
             let images = arr;
+            let tags = JSON.parse(req.body.tags);
             let ownerId = owner._id.toString();
             db.collection("cafes").insertOne(
               {
@@ -215,7 +216,8 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
                 city,
                 country,
                 ownerId,
-                images
+                images,
+                tags
               },
               (err, result) => {
                 if (err) throw err;
@@ -263,7 +265,7 @@ app.post("/add-location", upload.none(), (req, res) => {
 
 app.post("/add-layout", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
-  console.log("cafeId=>", cafeId);
+
   let chairs = JSON.parse(req.body.chairs);
   let tables = JSON.parse(req.body.tables);
   let ObjectID = mongo.ObjectID;
