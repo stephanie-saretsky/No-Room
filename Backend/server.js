@@ -121,8 +121,9 @@ app.get("/login-check", (req, res) => {
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
     .then(user => {
+      let username = user.username;
       if (user !== null) {
-        res.send(JSON.stringify({ success: true }));
+        res.send(JSON.stringify({ success: true, username: username }));
         return;
       }
       res.send(JSON.stringify({ success: false }));
@@ -200,14 +201,19 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
             let name = req.body.name;
             let desc = req.body.desc;
             let address = req.body.address;
-            let urlAddress = address.split(" ").join("+");
+            let country = req.body.country;
+            let city = req.body.city;
+            let code = req.body.code;
             let images = arr;
             let ownerId = owner._id.toString();
             db.collection("cafes").insertOne(
               {
                 name,
                 desc,
-                address: urlAddress,
+                address,
+                code,
+                city,
+                country,
                 ownerId,
                 images
               },
@@ -223,7 +229,10 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
                   JSON.stringify({
                     success: true,
                     cafeId: cafeId,
-                    address: urlAddress
+                    address: address,
+                    city: city,
+                    code: code,
+                    country: country
                   })
                 );
               }
@@ -293,6 +302,51 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
               if (err) throw err;
               console.log("CAFEs=>", resultCafes);
               res.send(JSON.stringify(resultCafes));
+            });
+        });
+    });
+});
+
+//change seat
+
+app.post("/change-seat", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let chairId = req.body.chairId;
+  let cafeId = req.body.cafeId;
+  let ObjectID = mongo.ObjectID;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .findOne({ cafeId: new ObjectID(cafeId) })
+            .then(cafe => {
+              let chairs = cafe.chairs;
+              chairs = chairs.map(chair => {
+                if (chair.id !== chairId) return chair;
+                if (chair.id === chairId) {
+                  if (chair.taken === true) {
+                    return { ...chair, taken: false };
+                  }
+                  if (chair.taken === false) {
+                    return { ...chair, taken: true };
+                  }
+                }
+              });
+              db.collection("cafes").updateOne(
+                { cafeId: new ObjectID(cafeId) },
+                {
+                  $set: {
+                    chairs: chairs
+                  }
+                }
+              );
+              res.send(JSON.stringify({ success: true }));
             });
         });
     });
