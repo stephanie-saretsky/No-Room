@@ -46,7 +46,9 @@ app.post("/signup", upload.none(), (req, res) => {
       db.collection("users").insertOne(
         {
           username: username,
-          password: password
+          password: password,
+          details: false,
+          layout: false
         },
         (err, result) => {
           if (err) throw err;
@@ -128,6 +130,28 @@ app.get("/login-check", (req, res) => {
       }
       res.send(JSON.stringify({ success: false }));
       return;
+    });
+});
+
+// check if user is done edit
+
+app.get("/edit-check", (req, res) => {
+  let sessionId = req.cookies.sid;
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(userInfo => {
+          let details = userInfo.details;
+          console.log("details", details);
+          let layout = userInfo.layout;
+          console.log("layout", layout);
+          res.send(
+            JSON.stringify({ success: true, details: details, layout: layout })
+          );
+        });
     });
 });
 
@@ -231,6 +255,10 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
                 { username: username },
                 { $addToSet: { cafes: cafeId } }
               );
+              db.collection("users").updateOne(
+                { username: username },
+                { $set: { details: true } }
+              );
               res.send(
                 JSON.stringify({
                   success: true,
@@ -288,6 +316,10 @@ app.post("/add-layout", upload.none(), (req, res) => {
                 chairs: chairs
               }
             }
+          );
+          db.collection("users").updateOne(
+            { username: username },
+            { $set: { layout: true } }
           );
         });
     });
