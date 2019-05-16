@@ -303,7 +303,6 @@ app.post("/add-layout", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
   let chairs = JSON.parse(req.body.chairs);
   let tables = JSON.parse(req.body.tables);
-  let ObjectID = mongo.ObjectID;
 
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
@@ -336,7 +335,6 @@ app.post("/add-layout", upload.none(), (req, res) => {
 
 app.post("/cafe-owner-details", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
-  let ObjectID = mongo.ObjectID;
 
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
@@ -362,8 +360,6 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
 app.post("/change-seat", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
   let chairId = req.body.chairId;
-  let cafeId = req.body.cafeId;
-  let ObjectID = mongo.ObjectID;
 
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
@@ -428,16 +424,24 @@ app.post("/wait-time", upload.none(), (req, res) => {
 
 app.post("/remove-cafe", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
-  let cafeId = req.body.cafeId;
-  let ObjectID = mongo.ObjectID;
-  console.log(cafeId);
+
   if (cafeId === undefined) {
     res.send(JSON.stringify({ success: false }));
   }
-  db.collection("cafes")
-    .deleteOne({ _id: new ObjectID(cafeId) })
-    .then(result => {
-      res.send(JSON.stringify({ success: true }));
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("user")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes").deleteOne({ ownerId: ownerId.toString() });
+        })
+        .then(result => {
+          res.send(JSON.stringify({ success: true }));
+        });
     });
 });
 
