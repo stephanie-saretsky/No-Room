@@ -204,11 +204,13 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
         .findOne({ username: username })
         .then(owner => {
           let name = req.body.name;
+          let number = req.body.number;
           let desc = req.body.desc;
           let address = req.body.address;
           let country = req.body.country;
           let city = req.body.city;
           let code = req.body.code;
+          let url = req.body.url;
           let tags = JSON.parse(req.body.tags);
           let ownerId = owner._id.toString();
           db.collection("cafes").insertOne(
@@ -219,6 +221,8 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
               code,
               city,
               country,
+              number,
+              url,
               ownerId,
               images,
               tags
