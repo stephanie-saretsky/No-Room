@@ -249,7 +249,8 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
               url,
               ownerId,
               images,
-              tags
+              tags,
+              waitTime: "0 minutes"
             },
             (err, result) => {
               if (err) throw err;
@@ -397,6 +398,28 @@ app.post("/change-seat", upload.none(), (req, res) => {
               );
               res.send(JSON.stringify({ success: true }));
             });
+        });
+    });
+});
+
+//set a wait time
+
+app.post("/wait-time", upload.none(), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let waitTime = req.body.waitTime;
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes").updateOne(
+            { ownerId: ownerId.toString() },
+            { $set: { waitTime: waitTime } }
+          );
+          res.send(JSON.stringify({ success: true }));
         });
     });
 });
