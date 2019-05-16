@@ -520,11 +520,13 @@ app.post("/response-review", upload.none(), (req, res) => {
 app.get("/search-cafe", (req, res) => {
   let search = req.query.search;
   let regexSearch = new RegExp(search, "i");
+
   db.collection("cafes")
     .find({
       $or: [
         { desc: { $regex: regexSearch } },
         { name: { $regex: regexSearch } },
+        { names: { $regex: regexSearch } },
         { tags: { $in: [regexSearch] } },
         { address: { $regex: regexSearch } },
         { city: { $regex: regexSearch } }
