@@ -493,11 +493,14 @@ app.get("/search-cafe", (req, res) => {
       $or: [
         { desc: { $regex: regexSearch } },
         { name: { $regex: regexSearch } },
-        { tags: { $regex: regexSearch } }
+        { tags: { $in: [regexSearch] } },
+        { address: { $regex: regexSearch } },
+        { city: { $regex: regexSearch } }
       ]
     })
     .toArray((err, result) => {
       if (err) throw err;
+      console.log("Search results =>", result);
       res.send(JSON.stringify({ success: true, cafes: result }));
     });
 });
@@ -528,6 +531,8 @@ app.post("/checkAuto", upload.none(), (req, res) => {
     }
   );
 });
+
+app.post("/search-address", upload.none(), (req, res) => {});
 
 // new endpoint => fonction
 
