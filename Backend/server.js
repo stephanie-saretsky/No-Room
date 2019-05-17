@@ -62,9 +62,7 @@ app.post("/signup", upload.none(), (req, res) => {
 
 app.post("/login", upload.none(), (req, res) => {
   let username = req.body.username;
-  console.log("username", username);
   let enteredPassword = req.body.password;
-  console.log("password", enteredPassword);
   db.collection("users")
     .findOne({ username: username })
     .then(user => {
@@ -72,7 +70,6 @@ app.post("/login", upload.none(), (req, res) => {
         res.send(JSON.stringify({ success: false }));
         return;
       }
-      console.log("user", user);
       let expectedPassword = user.password;
       if (enteredPassword !== expectedPassword) {
         res.send(JSON.stringify({ success: false }));
@@ -82,7 +79,6 @@ app.post("/login", upload.none(), (req, res) => {
       db.collection("sessions")
         .findOne({ username: username })
         .then(usersession => {
-          console.log("USER=>", usersession);
           if (usersession !== null) {
             let NewSessionId = generateId();
             db.collection("sessions").updateOne(
@@ -145,9 +141,13 @@ app.get("/edit-check", (req, res) => {
         .findOne({ username: username })
         .then(userInfo => {
           let details = userInfo.details;
+<<<<<<< HEAD
 
           let layout = userInfo.layout;
           let secondEdit = userInfo.secondEdit;
+=======
+          let layout = userInfo.layout;
+>>>>>>> 2d39999e22fcdd04d7247745e9b0dac951bd54ed
           res.send(
             JSON.stringify({
               success: true,
@@ -308,7 +308,6 @@ app.post("/add-layout", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
   let chairs = JSON.parse(req.body.chairs);
   let tables = JSON.parse(req.body.tables);
-  let ObjectID = mongo.ObjectID;
 
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
@@ -341,7 +340,6 @@ app.post("/add-layout", upload.none(), (req, res) => {
 
 app.post("/cafe-owner-details", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
-  let ObjectID = mongo.ObjectID;
 
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
@@ -367,8 +365,6 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
 app.post("/change-seat", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
   let chairId = req.body.chairId;
-  let cafeId = req.body.cafeId;
-  let ObjectID = mongo.ObjectID;
 
   db.collection("sessions")
     .findOne({ sessionId: sessionId })
@@ -433,16 +429,24 @@ app.post("/wait-time", upload.none(), (req, res) => {
 
 app.post("/remove-cafe", upload.none(), (req, res) => {
   let sessionId = req.cookies.sid;
-  let cafeId = req.body.cafeId;
-  let ObjectID = mongo.ObjectID;
-  console.log(cafeId);
+
   if (cafeId === undefined) {
     res.send(JSON.stringify({ success: false }));
   }
-  db.collection("cafes")
-    .deleteOne({ _id: new ObjectID(cafeId) })
-    .then(result => {
-      res.send(JSON.stringify({ success: true }));
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("user")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes").deleteOne({ ownerId: ownerId.toString() });
+        })
+        .then(result => {
+          res.send(JSON.stringify({ success: true }));
+        });
     });
 });
 
@@ -593,7 +597,6 @@ app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
 //add a review to a cafe
 
 app.post("/add-review", upload.none(), (req, res) => {
-  let sessionId = req.cookies.sid;
   let cafeId = req.body.cafeId;
   let review = req.body.review;
   let rating = req.body.rating;
@@ -644,16 +647,21 @@ app.post("/response-review", upload.none(), (req, res) => {
 app.get("/search-cafe", (req, res) => {
   let search = req.query.search;
   let regexSearch = new RegExp(search, "i");
+
   db.collection("cafes")
     .find({
       $or: [
         { desc: { $regex: regexSearch } },
         { name: { $regex: regexSearch } },
-        { tags: { $regex: regexSearch } }
+        { names: { $regex: regexSearch } },
+        { tags: { $in: [regexSearch] } },
+        { address: { $regex: regexSearch } },
+        { city: { $regex: regexSearch } }
       ]
     })
     .toArray((err, result) => {
       if (err) throw err;
+      console.log("Search results =>", result);
       res.send(JSON.stringify({ success: true, cafes: result }));
     });
 });
@@ -685,6 +693,8 @@ app.post("/checkAuto", upload.none(), (req, res) => {
   );
 });
 
+app.post("/search-address", upload.none(), (req, res) => {});
+
 // new endpoint => fonction
 
 let a = () => {
@@ -692,12 +702,3 @@ let a = () => {
 };
 
 app.listen(4000, a(), "0.0.0.0");
-
-//Pythagorean theoreme:
-// let xd = this.enemies[i].x - this.player.x;
-// let yd = this.enemies[i].y - this.player.y;
-
-// let pyth = Math.sqrt(Math.pow(xd, 2) + Math.pow(yd, 2));
-
-// if (pyth < ||) {
-// 	return true
