@@ -62,9 +62,7 @@ app.post("/signup", upload.none(), (req, res) => {
 
 app.post("/login", upload.none(), (req, res) => {
   let username = req.body.username;
-  console.log("username", username);
   let enteredPassword = req.body.password;
-  console.log("password", enteredPassword);
   db.collection("users")
     .findOne({ username: username })
     .then(user => {
@@ -72,7 +70,6 @@ app.post("/login", upload.none(), (req, res) => {
         res.send(JSON.stringify({ success: false }));
         return;
       }
-      console.log("user", user);
       let expectedPassword = user.password;
       if (enteredPassword !== expectedPassword) {
         res.send(JSON.stringify({ success: false }));
@@ -82,7 +79,6 @@ app.post("/login", upload.none(), (req, res) => {
       db.collection("sessions")
         .findOne({ username: username })
         .then(usersession => {
-          console.log("USER=>", usersession);
           if (usersession !== null) {
             let NewSessionId = generateId();
             db.collection("sessions").updateOne(
@@ -145,9 +141,7 @@ app.get("/edit-check", (req, res) => {
         .findOne({ username: username })
         .then(userInfo => {
           let details = userInfo.details;
-          console.log("details", details);
           let layout = userInfo.layout;
-          console.log("layout", layout);
           res.send(
             JSON.stringify({ success: true, details: details, layout: layout })
           );
