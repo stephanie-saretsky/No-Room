@@ -141,13 +141,9 @@ app.get("/edit-check", (req, res) => {
         .findOne({ username: username })
         .then(userInfo => {
           let details = userInfo.details;
-<<<<<<< HEAD
 
           let layout = userInfo.layout;
           let secondEdit = userInfo.secondEdit;
-=======
-          let layout = userInfo.layout;
->>>>>>> 2d39999e22fcdd04d7247745e9b0dac951bd54ed
           res.send(
             JSON.stringify({
               success: true,
