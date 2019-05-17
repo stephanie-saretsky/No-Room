@@ -187,7 +187,7 @@ app.post("/cafe-details", upload.none(), (req, res) => {
                 return {
                   ...review,
                   response: responses.filter(response => {
-                    return response.reviewId === review._id;
+                    return response.reviewId === review._id.toString();
                   })
                 };
               });
@@ -590,6 +590,41 @@ app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
     });
 });
 
+app.post("/reviews", upload.none(), (req, res) => {
+  let cafeId = req.body.cafeId;
+  console.log("cafeId", cafeId);
+  let ObjectID = mongo.ObjectID;
+  db.collection("cafes")
+    .findOne({ _id: new ObjectID(cafeId) })
+    .then(cafe => {
+      db.collection("cafe-reviews")
+        .find({ cafeId: cafeId })
+        .toArray((err, reviews) => {
+          if (err) throw err;
+          db.collection("responses-review")
+            .find({})
+            .toArray((err, responses) => {
+              if (err) throw err;
+              reviews = reviews.map(review => {
+                return {
+                  ...review,
+                  response: responses.filter(response => {
+                    return response.reviewId === review._id.toString();
+                  })
+                };
+              });
+              console.log("sending reviews", reviews);
+              res.send(
+                JSON.stringify({
+                  success: true,
+                  reviews: reviews
+                })
+              );
+            });
+        });
+    });
+});
+
 //add a review to a cafe
 
 app.post("/add-review", upload.none(), (req, res) => {
@@ -597,9 +632,10 @@ app.post("/add-review", upload.none(), (req, res) => {
   let review = req.body.review;
   let rating = req.body.rating;
   let reviewerName = req.body.name;
+  let ObjectID = mongo.ObjectID;
 
   db.collection("cafes")
-    .findOne({ cafeId: cafeId })
+    .findOne({ _id: new ObjectID(cafeId) })
     .then(cafe => {
       name = cafe.name;
       db.collection("cafe-reviews").insertOne(
