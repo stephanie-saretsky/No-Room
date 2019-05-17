@@ -141,9 +141,16 @@ app.get("/edit-check", (req, res) => {
         .findOne({ username: username })
         .then(userInfo => {
           let details = userInfo.details;
+
           let layout = userInfo.layout;
+          let secondEdit = userInfo.secondEdit;
           res.send(
-            JSON.stringify({ success: true, details: details, layout: layout })
+            JSON.stringify({
+              success: true,
+              details: details,
+              layout: layout,
+              secondEdit: secondEdit
+            })
           );
         });
     });
@@ -439,14 +446,83 @@ app.post("/remove-cafe", upload.none(), (req, res) => {
     });
 });
 
-//edit a cafe (owner side)
+//edit layout
+
+app.get("/edit-layout", (req, res) => {
+  let sessionId = req.cookies.sid;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users").updateOne(
+        { username: username },
+        { $set: { layout: false } }
+      );
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId.toString() })
+            .then(cafe => {
+              let cafeChairs = cafe.chairs;
+              let cafeTables = cafe.tables;
+              console.log("chairs", cafeChairs);
+              res.send(
+                JSON.stringify({
+                  success: true,
+                  chairs: cafeChairs,
+                  tables: cafeTables
+                })
+              );
+            });
+        });
+    });
+});
+
+app.get("/edit-details", (req, res) => {
+  let sessionId = req.cookies.sid;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users").updateOne(
+        { username: username },
+        { $set: { layout: false, details: false } }
+      );
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId.toString() })
+            .then(cafe => {
+              if (cafe !== null) {
+                db.collection("users").updateOne(
+                  { username: username },
+                  { $set: { details: false, layout: false, secondEdit: true } }
+                );
+                res.send(
+                  JSON.stringify({
+                    success: true,
+                    cafe: cafe
+                  })
+                );
+                return;
+              }
+              res.send(JSON.stringify({ success: false }));
+            });
+        });
+    });
+});
 
 app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
   let sessionId = req.cookies.sid;
   let files = req.files;
   let images = [];
 
-  console.log("files", files);
   if (files.length !== 0) {
     images = files.map(el => {
       let frontendPath = "http://localhost:4000/images/" + el.filename;
@@ -491,18 +567,25 @@ app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
                 tags,
                 waitTime: "0 minutes"
               }
-            },
-            (err, result) => {
-              if (err) throw err;
-              let cafeId = result.ops[0]._id.toString();
+            }
+          );
+          db.collection("users").updateOne(
+            { username: username },
+            { $set: { details: true, layout: true, secondEdit: false } }
+          );
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId })
+            .then(cafe => {
+              let cafeId = cafe._id.toString();
               res.send(
                 JSON.stringify({
                   success: true,
-                  cafeId: cafeId
+                  cafeId: cafeId,
+                  address: address,
+                  city: city
                 })
               );
-            }
-          );
+            });
         });
     });
 });
