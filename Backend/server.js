@@ -145,11 +145,16 @@ app.get("/edit-check", (req, res) => {
         .findOne({ username: username })
         .then(userInfo => {
           let details = userInfo.details;
-          console.log("details", details);
+
           let layout = userInfo.layout;
-          console.log("layout", layout);
+          let secondEdit = userInfo.secondEdit;
           res.send(
-            JSON.stringify({ success: true, details: details, layout: layout })
+            JSON.stringify({
+              success: true,
+              details: details,
+              layout: layout,
+              secondEdit: secondEdit
+            })
           );
         });
     });
@@ -441,53 +446,149 @@ app.post("/remove-cafe", upload.none(), (req, res) => {
     });
 });
 
-//edit a cafe (owner side)
+//edit layout
 
-// app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
-//   let sessionId = req.cookies.sid;
-//   let files = req.files;
-//   console.log("files" + req.files);
+app.get("/edit-layout", (req, res) => {
+  let sessionId = req.cookies.sid;
 
-//   if (files !== undefined) {
-//     let arr = files.map(el => {
-//       let frontendPath = "http://localhost:4000/images/" + el.filename;
-//       console.log("path for image=>", frontendPath);
-//       return frontendPath;
-//     });
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users").updateOne(
+        { username: username },
+        { $set: { layout: false } }
+      );
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId.toString() })
+            .then(cafe => {
+              let cafeChairs = cafe.chairs;
+              let cafeTables = cafe.tables;
+              console.log("chairs", cafeChairs);
+              res.send(
+                JSON.stringify({
+                  success: true,
+                  chairs: cafeChairs,
+                  tables: cafeTables
+                })
+              );
+            });
+        });
+    });
+});
 
-//     db.collection("sessions")
-//       .findOne({ sessionId: sessionId })
-//       .then(owner => {
-//         let username = owner.username;
-//         db.collection("users")
-//           .findOne({ username: username })
-//           .then(owner => {
-//             let { name, desc, address } = req.body;
-//             let images = arr;
-//             let ownerId = owner._id;
-//             db.collection("cafes").insertOne(
-//               {
-//                 name,
-//                 desc,
-//                 address,
-//                 ownerId,
-//                 images
-//               },
-//               (err, result) => {
-//                 if (err) throw err;
-//                 console.log("ID OF THE CAFE=>", result.ops[0]._id);
-//                 let cafeId = result.ops[0]._id;
-//                 db.collection("users").updateOne(
-//                   { username: username },
-//                   { $addToSet: { cafes: cafeId } }
-//                 );
-//                 res.send(JSON.stringify({ success: true, cafeId: cafeId }));
-//               }
-//             );
-//           });
-//       });
-//   }
-// });
+app.get("/edit-details", (req, res) => {
+  let sessionId = req.cookies.sid;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users").updateOne(
+        { username: username },
+        { $set: { layout: false, details: false } }
+      );
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId.toString() })
+            .then(cafe => {
+              if (cafe !== null) {
+                db.collection("users").updateOne(
+                  { username: username },
+                  { $set: { details: false, layout: false, secondEdit: true } }
+                );
+                res.send(
+                  JSON.stringify({
+                    success: true,
+                    cafe: cafe
+                  })
+                );
+                return;
+              }
+              res.send(JSON.stringify({ success: false }));
+            });
+        });
+    });
+});
+
+app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
+  let sessionId = req.cookies.sid;
+  let files = req.files;
+  let images = [];
+
+  if (files.length !== 0) {
+    images = files.map(el => {
+      let frontendPath = "http://localhost:4000/images/" + el.filename;
+      console.log("path for image=>", frontendPath);
+      return frontendPath;
+    });
+  } else {
+    images = images.concat("http://localhost:4000/images/logo.png");
+  }
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(owner => {
+      let username = owner.username;
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let name = req.body.name;
+          let number = req.body.number;
+          let desc = req.body.desc;
+          let address = req.body.address;
+          let country = req.body.country;
+          let city = req.body.city;
+          let code = req.body.code;
+          let url = req.body.url;
+          let tags = JSON.parse(req.body.tags);
+          let ownerId = owner._id.toString();
+          db.collection("cafes").updateOne(
+            { ownerId: ownerId },
+            {
+              $set: {
+                name,
+                desc,
+                address,
+                code,
+                city,
+                country,
+                number,
+                url,
+                ownerId,
+                images,
+                tags,
+                waitTime: "0 minutes"
+              }
+            }
+          );
+          db.collection("users").updateOne(
+            { username: username },
+            { $set: { details: true, layout: true, secondEdit: false } }
+          );
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId })
+            .then(cafe => {
+              let cafeId = cafe._id.toString();
+              res.send(
+                JSON.stringify({
+                  success: true,
+                  cafeId: cafeId,
+                  address: address,
+                  city: city
+                })
+              );
+            });
+        });
+    });
+});
 
 //add a review to a cafe
 
@@ -599,4 +700,4 @@ app.listen(4000, a(), "0.0.0.0");
 // let pyth = Math.sqrt(Math.pow(xd, 2) + Math.pow(yd, 2));
 
 // if (pyth < ||) {
-// 	return true;
+// 	return true
