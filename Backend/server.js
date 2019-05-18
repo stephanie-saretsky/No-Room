@@ -210,11 +210,9 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
   let files = req.files;
   let images = [];
 
-  console.log("files", files);
   if (files.length !== 0) {
     images = files.map(el => {
       let frontendPath = "http://localhost:4000/images/" + el.filename;
-      console.log("path for image=>", frontendPath);
       return frontendPath;
     });
   } else {
@@ -255,7 +253,7 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
             },
             (err, result) => {
               if (err) throw err;
-              console.log("ID OF THE CAFE=>", result.ops[0]._id);
+
               let cafeId = result.ops[0]._id.toString();
               db.collection("users").updateOne(
                 { username: username },
@@ -285,7 +283,6 @@ app.post("/add-location", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
   let location = JSON.parse(req.body.location);
   let ObjectID = mongo.ObjectID;
-  console.log("BODY=>", req.body);
 
   db.collection("cafes").updateOne(
     { _id: new ObjectID(cafeId) },
@@ -349,7 +346,7 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
             .find({ ownerId: ownerId.toString() })
             .toArray((err, resultCafes) => {
               if (err) throw err;
-              console.log("CAFEs=>", resultCafes);
+
               res.send(JSON.stringify(resultCafes));
             });
         });
@@ -459,25 +456,7 @@ app.get("/edit-layout", (req, res) => {
         { username: username },
         { $set: { layout: false } }
       );
-      db.collection("users")
-        .findOne({ username: username })
-        .then(owner => {
-          let ownerId = owner._id;
-          db.collection("cafes")
-            .findOne({ ownerId: ownerId.toString() })
-            .then(cafe => {
-              let cafeChairs = cafe.chairs;
-              let cafeTables = cafe.tables;
-              console.log("chairs", cafeChairs);
-              res.send(
-                JSON.stringify({
-                  success: true,
-                  chairs: cafeChairs,
-                  tables: cafeTables
-                })
-              );
-            });
-        });
+      res.send(JSON.stringify({ success: true }));
     });
 });
 
@@ -490,8 +469,19 @@ app.get("/edit-details", (req, res) => {
       let username = user.username;
       db.collection("users").updateOne(
         { username: username },
-        { $set: { layout: false, details: false } }
+        { $set: { details: false, layout: false, secondEdit: true } }
       );
+      res.send(JSON.stringify({ success: true }));
+    });
+});
+
+app.get("/cafe-info", (req, res) => {
+  let sessionId = req.cookies.sid;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
       db.collection("users")
         .findOne({ username: username })
         .then(owner => {
@@ -499,20 +489,17 @@ app.get("/edit-details", (req, res) => {
           db.collection("cafes")
             .findOne({ ownerId: ownerId.toString() })
             .then(cafe => {
-              if (cafe !== null) {
-                db.collection("users").updateOne(
-                  { username: username },
-                  { $set: { details: false, layout: false, secondEdit: true } }
-                );
-                res.send(
-                  JSON.stringify({
-                    success: true,
-                    cafe: cafe
-                  })
-                );
-                return;
-              }
-              res.send(JSON.stringify({ success: false }));
+              let cafeChairs = cafe.chairs;
+              let cafeTables = cafe.tables;
+
+              res.send(
+                JSON.stringify({
+                  success: true,
+                  chairs: cafeChairs,
+                  tables: cafeTables,
+                  cafe: cafe
+                })
+              );
             });
         });
     });
@@ -521,16 +508,15 @@ app.get("/edit-details", (req, res) => {
 app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
   let sessionId = req.cookies.sid;
   let files = req.files;
-  let images = [];
+  let images = JSON.parse(req.body.images);
+  console.log("images", images);
 
   if (files.length !== 0) {
-    images = files.map(el => {
+    console.log("not zero");
+    files.map(el => {
       let frontendPath = "http://localhost:4000/images/" + el.filename;
-      console.log("path for image=>", frontendPath);
-      return frontendPath;
+      images = images.concat(frontendPath);
     });
-  } else {
-    images = images.concat("http://localhost:4000/images/logo.png");
   }
 
   db.collection("sessions")
@@ -657,7 +643,6 @@ app.get("/search-cafe", (req, res) => {
     })
     .toArray((err, result) => {
       if (err) throw err;
-      console.log("Search results =>", result);
       res.send(JSON.stringify({ success: true, cafes: result }));
     });
 });
