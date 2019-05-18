@@ -187,7 +187,7 @@ app.post("/cafe-details", upload.none(), (req, res) => {
                 return {
                   ...review,
                   response: responses.filter(response => {
-                    return response.reviewId === review._id;
+                    return response.reviewId === review._id.toString();
                   })
                 };
               });
@@ -227,18 +227,21 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
         .findOne({ username: username })
         .then(owner => {
           let name = req.body.name;
+          let names = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           let number = req.body.number;
           let desc = req.body.desc;
           let address = req.body.address;
           let country = req.body.country;
           let city = req.body.city;
           let code = req.body.code;
-          let url = req.body.url;
+          let website = req.body.url;
+          let url = "https://" + website;
           let tags = JSON.parse(req.body.tags);
           let ownerId = owner._id.toString();
           db.collection("cafes").insertOne(
             {
               name,
+              names,
               desc,
               address,
               code,
@@ -460,6 +463,8 @@ app.get("/edit-layout", (req, res) => {
     });
 });
 
+//edit details (owner side)
+
 app.get("/edit-details", (req, res) => {
   let sessionId = req.cookies.sid;
 
@@ -576,6 +581,41 @@ app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
     });
 });
 
+app.post("/reviews", upload.none(), (req, res) => {
+  let cafeId = req.body.cafeId;
+  console.log("cafeId", cafeId);
+  let ObjectID = mongo.ObjectID;
+  db.collection("cafes")
+    .findOne({ _id: new ObjectID(cafeId) })
+    .then(cafe => {
+      db.collection("cafe-reviews")
+        .find({ cafeId: cafeId })
+        .toArray((err, reviews) => {
+          if (err) throw err;
+          db.collection("responses-review")
+            .find({})
+            .toArray((err, responses) => {
+              if (err) throw err;
+              reviews = reviews.map(review => {
+                return {
+                  ...review,
+                  response: responses.filter(response => {
+                    return response.reviewId === review._id.toString();
+                  })
+                };
+              });
+              console.log("sending reviews", reviews);
+              res.send(
+                JSON.stringify({
+                  success: true,
+                  reviews: reviews
+                })
+              );
+            });
+        });
+    });
+});
+
 //add a review to a cafe
 
 app.post("/add-review", upload.none(), (req, res) => {
@@ -583,9 +623,10 @@ app.post("/add-review", upload.none(), (req, res) => {
   let review = req.body.review;
   let rating = req.body.rating;
   let reviewerName = req.body.name;
+  let ObjectID = mongo.ObjectID;
 
   db.collection("cafes")
-    .findOne({ cafeId: cafeId })
+    .findOne({ _id: new ObjectID(cafeId) })
     .then(cafe => {
       name = cafe.name;
       db.collection("cafe-reviews").insertOne(
@@ -622,6 +663,25 @@ app.post("/response-review", upload.none(), (req, res) => {
       });
       res.send(JSON.stringify({ success: true }));
     });
+});
+//add response
+
+app.post("/add-response", upload.none(), (req, res) => {
+  let reviewId = req.body.reviewId;
+  let response = req.body.response;
+  let ownerName = req.body.ownerName;
+
+  db.collection("responses-review").insertOne(
+    {
+      reviewId,
+      response,
+      ownerName
+    },
+    (err, result) => {
+      if (err) throw result;
+      res.send(JSON.stringify({ success: true }));
+    }
+  );
 });
 
 //search cafe
