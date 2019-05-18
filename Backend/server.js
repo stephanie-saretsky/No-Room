@@ -684,12 +684,14 @@ app.post("/add-response", upload.none(), (req, res) => {
   let reviewId = req.body.reviewId;
   let response = req.body.response;
   let ownerName = req.body.ownerName;
+  let edit = req.body.edit;
 
   db.collection("responses-review").insertOne(
     {
       reviewId,
       response,
-      ownerName
+      ownerName,
+      edit
     },
     (err, result) => {
       if (err) throw result;
