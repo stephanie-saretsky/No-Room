@@ -229,18 +229,21 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
         .findOne({ username: username })
         .then(owner => {
           let name = req.body.name;
+          let names = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           let number = req.body.number;
           let desc = req.body.desc;
           let address = req.body.address;
           let country = req.body.country;
           let city = req.body.city;
           let code = req.body.code;
-          let url = req.body.url;
+          let website = req.body.url;
+          let url = "https://" + website;
           let tags = JSON.parse(req.body.tags);
           let ownerId = owner._id.toString();
           db.collection("cafes").insertOne(
             {
               name,
+              names,
               desc,
               address,
               code,
@@ -480,6 +483,8 @@ app.get("/edit-layout", (req, res) => {
         });
     });
 });
+
+//edit details (owner side)
 
 app.get("/edit-details", (req, res) => {
   let sessionId = req.cookies.sid;
