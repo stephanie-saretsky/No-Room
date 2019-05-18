@@ -673,6 +673,25 @@ app.post("/response-review", upload.none(), (req, res) => {
       res.send(JSON.stringify({ success: true }));
     });
 });
+//add response
+
+app.post("/add-response", upload.none(), (req, res) => {
+  let reviewId = req.body.reviewId;
+  let response = req.body.response;
+  let ownerName = req.body.ownerName;
+
+  db.collection("responses-review").insertOne(
+    {
+      reviewId,
+      response,
+      ownerName
+    },
+    (err, result) => {
+      if (err) throw result;
+      res.send(JSON.stringify({ success: true }));
+    }
+  );
+});
 
 //search cafe
 
