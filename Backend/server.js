@@ -210,11 +210,9 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
   let files = req.files;
   let images = [];
 
-  console.log("files", files);
   if (files.length !== 0) {
     images = files.map(el => {
       let frontendPath = "http://localhost:4000/images/" + el.filename;
-      console.log("path for image=>", frontendPath);
       return frontendPath;
     });
   } else {
@@ -288,7 +286,6 @@ app.post("/add-location", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
   let location = JSON.parse(req.body.location);
   let ObjectID = mongo.ObjectID;
-  console.log("BODY=>", req.body);
 
   db.collection("cafes").updateOne(
     { _id: new ObjectID(cafeId) },
@@ -352,7 +349,6 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
             .find({ ownerId: ownerId.toString() })
             .toArray((err, resultCafes) => {
               if (err) throw err;
-              console.log("CAFEs=>", resultCafes);
               res.send(JSON.stringify(resultCafes));
             });
         });
@@ -471,7 +467,7 @@ app.get("/edit-layout", (req, res) => {
             .then(cafe => {
               let cafeChairs = cafe.chairs;
               let cafeTables = cafe.tables;
-              console.log("chairs", cafeChairs);
+
               res.send(
                 JSON.stringify({
                   success: true,
@@ -531,7 +527,7 @@ app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
   if (files.length !== 0) {
     images = files.map(el => {
       let frontendPath = "http://localhost:4000/images/" + el.filename;
-      console.log("path for image=>", frontendPath);
+
       return frontendPath;
     });
   } else {
@@ -597,7 +593,7 @@ app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
 
 app.post("/reviews", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
-  console.log("cafeId", cafeId);
+
   let ObjectID = mongo.ObjectID;
   db.collection("cafes")
     .findOne({ _id: new ObjectID(cafeId) })
@@ -618,7 +614,7 @@ app.post("/reviews", upload.none(), (req, res) => {
                   })
                 };
               });
-              console.log("sending reviews", reviews);
+
               res.send(
                 JSON.stringify({
                   success: true,
@@ -654,6 +650,7 @@ app.post("/add-review", upload.none(), (req, res) => {
         (err, result) => {
           if (err) throw err;
           res.send(JSON.stringify({ success: true }));
+          return;
         }
       );
     });
@@ -676,8 +673,10 @@ app.post("/response-review", upload.none(), (req, res) => {
         ownerName: username
       });
       res.send(JSON.stringify({ success: true }));
+      return;
     });
 });
+
 //add response
 
 app.post("/add-response", upload.none(), (req, res) => {
@@ -696,8 +695,42 @@ app.post("/add-response", upload.none(), (req, res) => {
     (err, result) => {
       if (err) throw result;
       res.send(JSON.stringify({ success: true }));
+      return;
     }
   );
+});
+
+//get response from a review
+
+app.post("/get-response", upload.none(), (req, res) => {
+  let reviewId = req.body.reviewId;
+
+  db.collection("responses-review").findOne(
+    { reviewId: reviewId },
+    (err, result) => {
+      if (err) throw err;
+      res.send(JSON.stringify({ result: result, success: true }));
+      return;
+    }
+  );
+});
+
+//edt response:
+
+app.post("/edit-response", upload.none(), (req, res) => {
+  let reviewId = req.body.reviewId;
+  let response = req.body.response;
+
+  db.collection("responses-review").updateOne(
+    { reviewId: reviewId },
+    {
+      $set: {
+        response: response
+      }
+    }
+  );
+  res.send(JSON.stringify({ success: true }));
+  return;
 });
 
 //search cafe
@@ -719,7 +752,6 @@ app.get("/search-cafe", (req, res) => {
     })
     .toArray((err, result) => {
       if (err) throw err;
-      console.log("Search results =>", result);
       res.send(JSON.stringify({ success: true, cafes: result }));
     });
 });
@@ -749,6 +781,8 @@ app.post("/checkAuto", upload.none(), (req, res) => {
       }
     }
   );
+  res.send(JSON.stringify({ success: true }));
+  return;
 });
 
 app.post("/search-address", upload.none(), (req, res) => {});
