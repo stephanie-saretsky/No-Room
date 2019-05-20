@@ -13,6 +13,52 @@ app.use("/images", express.static(__dirname + "/uploads/"));
 app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use(cookieParser());
 
+//functions to look near a cafe
+
+toDMS = coordinate => {
+  let absolute = Math.abs(coordinate);
+  let degrees = Math.floor(absolute);
+  let minutesNotTruncated = (absolute - degrees) * 60;
+  let minutes = Math.floor(minutesNotTruncated);
+  let seconds = Math.floor((minutesNotTruncated - minutes) * 60);
+
+  return degrees + " " + minutes + " " + seconds;
+};
+
+convertDMSlat = lat => {
+  let lati = "";
+  let latitude = toDMS(lat);
+  let latitudeCardinal = lat >= 0 ? "N" : "S";
+  lat = latitude + " " + latitudeCardinal;
+  return lati;
+};
+
+convertDMSlng = lng => {
+  let long = "";
+  let longitude = toDMS(lng);
+  let longitudeCardinal = lng >= 0 ? "E" : "W";
+  long = longitude + " " + longitudeCardinal;
+  return long;
+};
+
+calculdistance = (lat1, lat2, lon1, lon2) => {
+  let R = 6371e3; // meters
+  let φ1 = lat1.toRadians();
+  let φ2 = lat2.toRadians();
+  let Δφ = (lat2 - lat1).toRadians();
+  let Δλ = (lon2 - lon1).toRadians();
+
+  let a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+
+  let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  let d = R * c;
+
+  return d;
+};
+
 //Mongo:
 
 let url =
@@ -256,7 +302,7 @@ app.post("/add-cafe", upload.array("files", 3), (req, res) => {
             },
             (err, result) => {
               if (err) throw err;
-
+              console.log("ID OF THE CAFE=>", result.ops[0]._id);
               let cafeId = result.ops[0]._id.toString();
               db.collection("users").updateOne(
                 { username: username },
@@ -458,34 +504,6 @@ app.get("/edit-layout", (req, res) => {
         { username: username },
         { $set: { layout: false } }
       );
-      res.send(JSON.stringify({ success: true }));
-    });
-});
-
-//edit details (owner side)
-
-app.get("/edit-details", (req, res) => {
-  let sessionId = req.cookies.sid;
-
-  db.collection("sessions")
-    .findOne({ sessionId: sessionId })
-    .then(user => {
-      let username = user.username;
-      db.collection("users").updateOne(
-        { username: username },
-        { $set: { details: false, layout: false, secondEdit: true } }
-      );
-      res.send(JSON.stringify({ success: true }));
-    });
-});
-
-app.get("/cafe-info", (req, res) => {
-  let sessionId = req.cookies.sid;
-
-  db.collection("sessions")
-    .findOne({ sessionId: sessionId })
-    .then(user => {
-      let username = user.username;
       db.collection("users")
         .findOne({ username: username })
         .then(owner => {
@@ -500,10 +518,48 @@ app.get("/cafe-info", (req, res) => {
                 JSON.stringify({
                   success: true,
                   chairs: cafeChairs,
-                  tables: cafeTables,
-                  cafe: cafe
+                  tables: cafeTables
                 })
               );
+            });
+        });
+    });
+});
+
+//edit details (owner side)
+
+app.get("/edit-details", (req, res) => {
+  let sessionId = req.cookies.sid;
+
+  db.collection("sessions")
+    .findOne({ sessionId: sessionId })
+    .then(user => {
+      let username = user.username;
+      db.collection("users").updateOne(
+        { username: username },
+        { $set: { layout: false, details: false } }
+      );
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId.toString() })
+            .then(cafe => {
+              if (cafe !== null) {
+                db.collection("users").updateOne(
+                  { username: username },
+                  { $set: { details: false, layout: false, secondEdit: true } }
+                );
+                res.send(
+                  JSON.stringify({
+                    success: true,
+                    cafe: cafe
+                  })
+                );
+                return;
+              }
+              res.send(JSON.stringify({ success: false }));
             });
         });
     });
@@ -512,15 +568,16 @@ app.get("/cafe-info", (req, res) => {
 app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
   let sessionId = req.cookies.sid;
   let files = req.files;
-  let images = JSON.parse(req.body.images);
-  console.log("images", images);
+  let images = [];
 
   if (files.length !== 0) {
-    console.log("not zero");
-    files.map(el => {
+    images = files.map(el => {
       let frontendPath = "http://localhost:4000/images/" + el.filename;
-      images = images.concat(frontendPath);
+
+      return frontendPath;
     });
+  } else {
+    images = images.concat("http://localhost:4000/images/logo.png");
   }
 
   db.collection("sessions")
@@ -554,7 +611,8 @@ app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
                 url,
                 ownerId,
                 images,
-                tags
+                tags,
+                waitTime: "0 minutes"
               }
             }
           );
@@ -703,7 +761,7 @@ app.post("/get-response", upload.none(), (req, res) => {
   );
 });
 
-//edt response:
+//edit response:
 
 app.post("/edit-response", upload.none(), (req, res) => {
   let reviewId = req.body.reviewId;
@@ -744,6 +802,8 @@ app.get("/search-cafe", (req, res) => {
     });
 });
 
+// get all the autocomplete array from mongodb
+
 app.get("/autocomplete", upload.none(), (req, res) => {
   let ObjectID = mongo.ObjectID;
   let id = "5cdc72f51c9d44000083a958";
@@ -755,6 +815,8 @@ app.get("/autocomplete", upload.none(), (req, res) => {
     }
   );
 });
+
+//Push a new word inside autocomplete database
 
 app.post("/checkAuto", upload.none(), (req, res) => {
   let elements = JSON.parse(req.body.elements);
@@ -773,68 +835,30 @@ app.post("/checkAuto", upload.none(), (req, res) => {
   return;
 });
 
+//Search cafe nearby
+
 app.post("/search-nearby", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
 
   db.collection("cafes")
     .findOne({ cafeId: cafeId })
     .then(cafe => {
-      let lat = cafe.location.lat;
-      let lng = cafe.location.lng;
+      let lat1 = convertDMSlat(cafe.location.lat);
+      let lon1 = convertDMSlng(cafe.location.lng);
+      let min = 5000; //meters
       db.collection("cafes")
         .find({})
-        .toArray((err, result) => {});
+        .toArray((err, result) => {
+          let nearbyCafes = result.filter(cafe => {
+            let lat2 = convertDMSlat(cafe.location.lat);
+            let lon2 = convertDMSlng(cafe.location.lng);
+            let d = calculdistance(lat1, lat2, lon1, lon2);
+            return d <= min;
+          });
+          res.send(JSON.stringify({ success: true, cafes: nearbyCafes }));
+          return;
+        });
     });
-  // conversion lat and long into DMS
-
-  toDegreesMinutesAndSeconds = coordinate => {
-    let absolute = Math.abs(coordinate);
-    let degrees = Math.floor(absolute);
-    let minutesNotTruncated = (absolute - degrees) * 60;
-    let minutes = Math.floor(minutesNotTruncated);
-    let seconds = Math.floor((minutesNotTruncated - minutes) * 60);
-
-    return degrees + " " + minutes + " " + seconds;
-  };
-
-  convertDMSlat = lat => {
-    let lati = "";
-    let latitude = toDegreesMinutesAndSeconds(lat);
-    let latitudeCardinal = lat >= 0 ? "N" : "S";
-    lat = latitude + " " + latitudeCardinal;
-    return lati;
-  };
-
-  convertDMSlng = lng => {
-    let long = "";
-    let longitude = toDegreesMinutesAndSeconds(lng);
-    let longitudeCardinal = lng >= 0 ? "E" : "W";
-    long = longitude + " " + longitudeCardinal;
-    return long;
-  };
-
-  // calculate distance between 2 points
-
-  calculdistance = (lat1, lat2, lng1, lng2) => {
-    convertDMSlat(lat);
-    convertDMSlng(lng);
-
-    let R = 6371e3; // metres
-    let φ1 = lat1.toRadians();
-    let φ2 = lat2.toRadians();
-    let Δφ = (lat2 - lat1).toRadians();
-    let Δλ = (lon2 - lon1).toRadians();
-
-    let a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-
-    let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    let d = R * c;
-
-    return d;
-  };
 });
 
 // new endpoint => fonction
