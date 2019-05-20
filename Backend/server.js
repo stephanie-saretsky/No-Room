@@ -785,7 +785,69 @@ app.post("/checkAuto", upload.none(), (req, res) => {
   return;
 });
 
-app.post("/search-address", upload.none(), (req, res) => {});
+app.post("/search-nearby", upload.none(), (req, res) => {
+  let cafeId = req.body.cafeId;
+
+  db.collection("cafes")
+    .findOne({ cafeId: cafeId })
+    .then(cafe => {
+      let lat = cafe.location.lat;
+      let lng = cafe.location.lng;
+      db.collection("cafes")
+        .find({})
+        .toArray((err, result) => {});
+    });
+  // conversion lat and long into DMS
+
+  toDegreesMinutesAndSeconds = coordinate => {
+    let absolute = Math.abs(coordinate);
+    let degrees = Math.floor(absolute);
+    let minutesNotTruncated = (absolute - degrees) * 60;
+    let minutes = Math.floor(minutesNotTruncated);
+    let seconds = Math.floor((minutesNotTruncated - minutes) * 60);
+
+    return degrees + " " + minutes + " " + seconds;
+  };
+
+  convertDMSlat = lat => {
+    let lati = "";
+    let latitude = toDegreesMinutesAndSeconds(lat);
+    let latitudeCardinal = lat >= 0 ? "N" : "S";
+    lat = latitude + " " + latitudeCardinal;
+    return lati;
+  };
+
+  convertDMSlng = lng => {
+    let long = "";
+    let longitude = toDegreesMinutesAndSeconds(lng);
+    let longitudeCardinal = lng >= 0 ? "E" : "W";
+    long = longitude + " " + longitudeCardinal;
+    return long;
+  };
+
+  // calculate distance between 2 points
+
+  calculdistance = (lat1, lat2, lng1, lng2) => {
+    convertDMSlat(lat);
+    convertDMSlng(lng);
+
+    let R = 6371e3; // metres
+    let φ1 = lat1.toRadians();
+    let φ2 = lat2.toRadians();
+    let Δφ = (lat2 - lat1).toRadians();
+    let Δλ = (lon2 - lon1).toRadians();
+
+    let a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+
+    let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    let d = R * c;
+
+    return d;
+  };
+});
 
 // new endpoint => fonction
 
