@@ -22,31 +22,32 @@ toDMS = coordinate => {
   let minutes = Math.floor(minutesNotTruncated);
   let seconds = Math.floor((minutesNotTruncated - minutes) * 60);
 
-  return degrees + " " + minutes + " " + seconds;
+  return { degrees: degrees, minutes: minutes, seconds: seconds };
 };
 
 convertDMSlat = lat => {
-  let lati = "";
   let latitude = toDMS(lat);
-  let latitudeCardinal = lat >= 0 ? "N" : "S";
-  lat = latitude + " " + latitudeCardinal;
-  return lati;
+  let latitudeCardinal = { ...latitude, direction: lat >= 0 ? "N" : "S" };
+  return latitudeCardinal;
 };
 
 convertDMSlng = lng => {
-  let long = "";
   let longitude = toDMS(lng);
-  let longitudeCardinal = lng >= 0 ? "E" : "W";
-  long = longitude + " " + longitudeCardinal;
-  return long;
+  let longitudeCardinal = { ...longitude, direction: lng >= 0 ? "E" : "W" };
+  return longitudeCardinal;
+};
+
+toRadians = x => {
+  return (x.degrees + x.minutes / 60 + x.seconds / 3600) * (Math.PI / 180);
 };
 
 calculdistance = (lat1, lat2, lon1, lon2) => {
   let R = 6371e3; // meters
-  let φ1 = lat1.toRadians();
-  let φ2 = lat2.toRadians();
-  let Δφ = (lat2 - lat1).toRadians();
-  let Δλ = (lon2 - lon1).toRadians();
+  let φ1 = toRadians(lat1);
+
+  let φ2 = toRadians(lat2);
+  let Δφ = toRadians(lat2) - toRadians(lat1);
+  let Δλ = toRadians(lon2) - toRadians(lon1);
 
   let a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
@@ -55,7 +56,7 @@ calculdistance = (lat1, lat2, lon1, lon2) => {
   let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   let d = R * c;
-
+  console.log("distance", d);
   return d;
 };
 
@@ -839,21 +840,24 @@ app.post("/checkAuto", upload.none(), (req, res) => {
 
 app.post("/search-nearby", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
+  let ObjectID = mongo.ObjectID;
 
   db.collection("cafes")
-    .findOne({ cafeId: cafeId })
+    .findOne({ _id: new ObjectID(cafeId) })
     .then(cafe => {
       let lat1 = convertDMSlat(cafe.location.lat);
       let lon1 = convertDMSlng(cafe.location.lng);
-      let min = 5000; //meters
+      let cafeid = cafe._id;
+      let min = 1500; //meters
       db.collection("cafes")
         .find({})
         .toArray((err, result) => {
+          console.log("cafeid", cafeid);
           let nearbyCafes = result.filter(cafe => {
             let lat2 = convertDMSlat(cafe.location.lat);
             let lon2 = convertDMSlng(cafe.location.lng);
-            let d = calculdistance(lat1, lat2, lon1, lon2);
-            return d <= min;
+            let distance = calculdistance(lat1, lat2, lon1, lon2);
+            return distance <= min && distance !== 0;
           });
           res.send(JSON.stringify({ success: true, cafes: nearbyCafes }));
           return;
