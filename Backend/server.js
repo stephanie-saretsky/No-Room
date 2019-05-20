@@ -349,7 +349,10 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
             .find({ ownerId: ownerId.toString() })
             .toArray((err, resultCafes) => {
               if (err) throw err;
+<<<<<<< HEAD
 
+=======
+>>>>>>> ed546584ed7f7f5dc51c38c61e54f417ef6f7524
               res.send(JSON.stringify(resultCafes));
             });
         });
@@ -459,7 +462,29 @@ app.get("/edit-layout", (req, res) => {
         { username: username },
         { $set: { layout: false } }
       );
+<<<<<<< HEAD
       res.send(JSON.stringify({ success: true }));
+=======
+      db.collection("users")
+        .findOne({ username: username })
+        .then(owner => {
+          let ownerId = owner._id;
+          db.collection("cafes")
+            .findOne({ ownerId: ownerId.toString() })
+            .then(cafe => {
+              let cafeChairs = cafe.chairs;
+              let cafeTables = cafe.tables;
+
+              res.send(
+                JSON.stringify({
+                  success: true,
+                  chairs: cafeChairs,
+                  tables: cafeTables
+                })
+              );
+            });
+        });
+>>>>>>> ed546584ed7f7f5dc51c38c61e54f417ef6f7524
     });
 });
 
@@ -582,7 +607,7 @@ app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
 
 app.post("/reviews", upload.none(), (req, res) => {
   let cafeId = req.body.cafeId;
-  console.log("cafeId", cafeId);
+
   let ObjectID = mongo.ObjectID;
   db.collection("cafes")
     .findOne({ _id: new ObjectID(cafeId) })
@@ -603,7 +628,7 @@ app.post("/reviews", upload.none(), (req, res) => {
                   })
                 };
               });
-              console.log("sending reviews", reviews);
+
               res.send(
                 JSON.stringify({
                   success: true,
@@ -639,6 +664,7 @@ app.post("/add-review", upload.none(), (req, res) => {
         (err, result) => {
           if (err) throw err;
           res.send(JSON.stringify({ success: true }));
+          return;
         }
       );
     });
@@ -661,26 +687,64 @@ app.post("/response-review", upload.none(), (req, res) => {
         ownerName: username
       });
       res.send(JSON.stringify({ success: true }));
+      return;
     });
 });
+
 //add response
 
 app.post("/add-response", upload.none(), (req, res) => {
   let reviewId = req.body.reviewId;
   let response = req.body.response;
   let ownerName = req.body.ownerName;
+  let edit = req.body.edit;
 
   db.collection("responses-review").insertOne(
     {
       reviewId,
       response,
-      ownerName
+      ownerName,
+      edit
     },
     (err, result) => {
       if (err) throw result;
       res.send(JSON.stringify({ success: true }));
+      return;
     }
   );
+});
+
+//get response from a review
+
+app.post("/get-response", upload.none(), (req, res) => {
+  let reviewId = req.body.reviewId;
+
+  db.collection("responses-review").findOne(
+    { reviewId: reviewId },
+    (err, result) => {
+      if (err) throw err;
+      res.send(JSON.stringify({ result: result, success: true }));
+      return;
+    }
+  );
+});
+
+//edt response:
+
+app.post("/edit-response", upload.none(), (req, res) => {
+  let reviewId = req.body.reviewId;
+  let response = req.body.response;
+
+  db.collection("responses-review").updateOne(
+    { reviewId: reviewId },
+    {
+      $set: {
+        response: response
+      }
+    }
+  );
+  res.send(JSON.stringify({ success: true }));
+  return;
 });
 
 //search cafe
@@ -731,6 +795,8 @@ app.post("/checkAuto", upload.none(), (req, res) => {
       }
     }
   );
+  res.send(JSON.stringify({ success: true }));
+  return;
 });
 
 app.post("/search-address", upload.none(), (req, res) => {});
