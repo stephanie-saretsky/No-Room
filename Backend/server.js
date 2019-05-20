@@ -555,8 +555,7 @@ app.post("/edit-cafe", upload.array("files", 3), (req, res) => {
                 url,
                 ownerId,
                 images,
-                tags,
-                waitTime: "0 minutes"
+                tags
               }
             }
           );
