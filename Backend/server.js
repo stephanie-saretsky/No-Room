@@ -349,10 +349,6 @@ app.post("/cafe-owner-details", upload.none(), (req, res) => {
             .find({ ownerId: ownerId.toString() })
             .toArray((err, resultCafes) => {
               if (err) throw err;
-<<<<<<< HEAD
-
-=======
->>>>>>> ed546584ed7f7f5dc51c38c61e54f417ef6f7524
               res.send(JSON.stringify(resultCafes));
             });
         });
@@ -462,29 +458,7 @@ app.get("/edit-layout", (req, res) => {
         { username: username },
         { $set: { layout: false } }
       );
-<<<<<<< HEAD
       res.send(JSON.stringify({ success: true }));
-=======
-      db.collection("users")
-        .findOne({ username: username })
-        .then(owner => {
-          let ownerId = owner._id;
-          db.collection("cafes")
-            .findOne({ ownerId: ownerId.toString() })
-            .then(cafe => {
-              let cafeChairs = cafe.chairs;
-              let cafeTables = cafe.tables;
-
-              res.send(
-                JSON.stringify({
-                  success: true,
-                  chairs: cafeChairs,
-                  tables: cafeTables
-                })
-              );
-            });
-        });
->>>>>>> ed546584ed7f7f5dc51c38c61e54f417ef6f7524
     });
 });
 
